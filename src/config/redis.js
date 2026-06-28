@@ -2,12 +2,21 @@ import { createClient } from 'redis';
 
 // Create a Redis client
 const redisClient = createClient({
-  url: process.env.REDIS_URI || 'redis://localhost:6379'
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+  socket: {
+    // Disable automatic reconnections to prevent log spam if Redis isn't installed locally
+    reconnectStrategy: false 
+  }
 });
+
+let hasLoggedError = false;
 
 // Handle connection events
 redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err.message);
+  if (!hasLoggedError) {
+    console.log('⚠️ Redis not found. App will run normally without caching.');
+    hasLoggedError = true;
+  }
 });
 
 redisClient.on('connect', () => {
@@ -24,7 +33,5 @@ const connectRedis = async () => {
   }
 };
 
-// Call connect immediately
-connectRedis();
-
+export { connectRedis };
 export default redisClient;

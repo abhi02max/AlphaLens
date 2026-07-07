@@ -1,5 +1,20 @@
 import 'dotenv/config'; // Must be first so env vars load before other modules evaluate
 import http from 'http';
+import * as Sentry from "@sentry/node";
+import { nodeProfilingIntegration } from "@sentry/profiling-node";
+
+// Initialize Sentry before anything else
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      nodeProfilingIntegration(),
+    ],
+    tracesSampleRate: 1.0, 
+    profilesSampleRate: 1.0,
+  });
+}
+
 import app from './app.js';
 import connectDB from './config/db.js';
 import { connectRedis } from './config/redis.js';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, AlertTriangle, TrendingUp, Info, CheckCircle2, Target } from 'lucide-react';
+import { Sparkles, AlertTriangle, TrendingUp, CheckCircle2, Target } from 'lucide-react';
 import { useAiInsights } from '../hooks/useStocks';
 import { AiInsightSkeleton } from './SkeletonLoader';
 import { DashboardCard } from './ui/DashboardCard';

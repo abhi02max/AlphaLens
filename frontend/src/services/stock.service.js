@@ -1,8 +1,8 @@
-import api from '../utils/api';
+import api from './apiClient'
 
 export const stockService = {
   searchStocks: async (query) => {
-    const response = await api.get(`/stocks/search?q=${query}`);
+    const response = await api.get('/stocks/search', { params: { q: query } });
     return response.data.data;
   },
   

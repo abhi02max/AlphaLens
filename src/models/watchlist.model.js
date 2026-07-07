@@ -2,15 +2,15 @@ import mongoose from 'mongoose';
 
 const watchlistSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+    clerkId: {
+      type: String,
       required: true,
+      unique: true,
     },
     symbols: [
       {
         type: String,
-        uppercase: true, // e.g. "aapl" becomes "AAPL"
+        uppercase: true,
       },
     ],
   },

@@ -1,7 +1,52 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { stockApi, healthApi } from '../services/api'
-import { useAuth } from '../context/AuthContext'
+import { useUser, SignUpButton, SignInButton } from '@clerk/clerk-react'
+import {
+  Search,
+  Brain,
+  ArrowRight,
+  BarChart3,
+  Bell,
+  ChevronRight,
+  LineChart,
+  ListFilter,
+  Newspaper,
+  ShieldCheck,
+  Star,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
+
+const marketTiles = [
+  { label: 'NIFTY 50', symbol: '^NSEI', value: '24,320.55', change: '+0.42%', positive: true },
+  { label: 'SENSEX', symbol: '^BSESN', value: '79,812.44', change: '+0.36%', positive: true },
+  { label: 'NASDAQ', symbol: '^IXIC', value: '18,927.32', change: '-0.18%', positive: false },
+  { label: 'BTC/USD', symbol: 'BTC-USD', value: '$61,840', change: '+1.74%', positive: true },
+]
+
+const watchlistPreview = [
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries', price: '2,934.20', change: '+1.12%', positive: true },
+  { symbol: 'TCS.NS', name: 'Tata Consultancy', price: '3,912.70', change: '-0.28%', positive: false },
+  { symbol: 'AAPL', name: 'Apple Inc.', price: '213.55', change: '+0.64%', positive: true },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', price: '126.09', change: '+2.31%', positive: true },
+]
+
+const sectorHeat = [
+  { label: 'IT', change: '+1.8%', size: 'md:col-span-2', tone: 'bg-emerald-500' },
+  { label: 'Banks', change: '+0.7%', size: '', tone: 'bg-emerald-400' },
+  { label: 'Energy', change: '-0.4%', size: '', tone: 'bg-red-400' },
+  { label: 'Auto', change: '+1.1%', size: '', tone: 'bg-emerald-500' },
+  { label: 'Pharma', change: '-0.2%', size: '', tone: 'bg-red-300' },
+  { label: 'FMCG', change: '+0.3%', size: 'md:col-span-2', tone: 'bg-emerald-300' },
+]
+
+const quickActions = [
+  { icon: LineChart, title: 'Advanced charts', text: 'Candles, volume, ranges, and clean crosshair analysis.' },
+  { icon: ListFilter, title: 'Market screener', text: 'Explore stocks by symbol, asset type, exchange, and sector.' },
+  { icon: Bell, title: 'Watchlists', text: 'Save ideas and return to them quickly from any device.' },
+  { icon: Brain, title: 'AI insight', text: 'Summaries, risk level, sentiment, and plain-English drivers.' },
+]
 
 export default function Home() {
   const [query, setQuery] = useState('')
@@ -9,19 +54,28 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [health, setHealth] = useState(null)
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
-
-  useEffect(() => { healthApi.check().then(r => setHealth(r.data)).catch(() => {}) }, [])
+  const { isSignedIn } = useUser()
 
   useEffect(() => {
-    if (query.length < 1) { setSuggestions([]); return }
+    healthApi.check().then(r => setHealth(r.data)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (query.length < 1) {
+      setSuggestions([])
+      return
+    }
+
     const timer = setTimeout(async () => {
       try {
         const res = await stockApi.search(query)
         setSuggestions(res.data.data?.slice(0, 6) || [])
         setShowSuggestions(true)
-      } catch { setSuggestions([]) }
+      } catch {
+        setSuggestions([])
+      }
     }, 300)
+
     return () => clearTimeout(timer)
   }, [query])
 
@@ -35,82 +89,220 @@ export default function Home() {
     e.preventDefault()
     if (query.trim()) {
       setShowSuggestions(false)
-      navigate(`/search?q=${query}`)
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`)
     }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 animate-fade-in">
-      <div className="text-center max-w-2xl">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/20">
-          <span className="text-3xl font-bold text-white">A</span>
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          <span className="gradient-text">Financial Intelligence</span>
-          <br />Powered by AI
-        </h1>
-        <p className="text-lg text-dark-600 dark:text-dark-400 mb-8 max-w-lg mx-auto">
-          Search any stock. Understand what&apos;s happening. Make informed decisions.
-        </p>
-        <form onSubmit={handleSearch} className="relative max-w-xl mx-auto">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search stocks, ETFs, indexes... (e.g. AAPL, RELIANCE.NS)"
-            className="input pl-5 pr-12 py-4 text-lg rounded-2xl shadow-lg shadow-primary-500/5"
-            onFocus={() => query.length > 0 && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          />
-          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 btn-primary p-2.5 rounded-xl text-lg">
-            →
-          </button>
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 card animate-fade-in z-10 divide-y dark:divide-dark-700">
-              {suggestions.map((s) => (
-                <button key={s.symbol} onMouseDown={() => handleSelect(s.symbol)}
-                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-dark-50 dark:hover:bg-dark-800 transition-colors text-left">
-                  <div>
-                    <div className="font-semibold text-sm">{s.symbol}</div>
-                    <div className="text-xs text-dark-500 dark:text-dark-400">{s.name}</div>
-                  </div>
-                  <div className="ml-auto text-xs badge-info">{s.type}</div>
-                </button>
-              ))}
+    <div className="animate-fade-in space-y-6">
+      <section className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 mb-2">
+                  <ShieldCheck size={14} />
+                  Market workspace
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-950 dark:text-white">
+                  Track, study, and shortlist smarter trades.
+                </h1>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-3 max-w-2xl">
+                  AlphaLens combines charting, watchlists, market discovery, and AI explanations in one calm investing dashboard.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link to="/search" className="btn-secondary">
+                  Explore
+                  <ArrowRight size={16} />
+                </Link>
+                {!isSignedIn && (
+                  <SignUpButton mode="modal">
+                    <button className="btn-primary">Create account</button>
+                  </SignUpButton>
+                )}
+              </div>
             </div>
-          )}
-        </form>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mt-8">
-        <div className="card p-5 text-center">
-          <div className="text-2xl mb-2">🤖</div>
-          <h3 className="font-semibold mb-1">AI Insights</h3>
-          <p className="text-sm text-dark-500">Understand why stocks move</p>
-        </div>
-        <div className="card p-5 text-center">
-          <div className="text-2xl mb-2">📊</div>
-          <h3 className="font-semibold mb-1">Live Charts</h3>
-          <p className="text-sm text-dark-500">Interactive price action</p>
-        </div>
-        <div className="card p-5 text-center">
-          <div className="text-2xl mb-2">📚</div>
-          <h3 className="font-semibold mb-1">Learning Mode</h3>
-          <p className="text-sm text-dark-500">Beginner to Pro</p>
-        </div>
-      </div>
+            <form onSubmit={handleSearch} className="relative mt-6">
+              <div className="relative flex items-center rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-indigo-500">
+                <Search size={20} className="absolute left-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search stocks, ETFs, indexes..."
+                  className="w-full pl-11 pr-28 py-3.5 rounded-lg bg-transparent text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                  onFocus={() => query.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                />
+                <button type="submit" className="absolute right-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-950 px-4 py-2 rounded-md text-sm font-semibold transition-colors">
+                  Search
+                </button>
+              </div>
 
-      {!isAuthenticated && (
-        <div className="flex gap-3 mt-4">
-          <Link to="/login" className="btn-primary">Sign In</Link>
-          <Link to="/register" className="btn-secondary">Get Started</Link>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.symbol}
+                      onMouseDown={() => handleSelect(s.symbol)}
+                      className="w-full flex items-center gap-4 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0 text-left"
+                    >
+                      <div className="w-10 h-10 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-sm text-slate-700 dark:text-slate-200">
+                        {s.symbol?.slice(0, 2)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-slate-900 dark:text-white">{s.symbol}</div>
+                        <div className="text-xs text-slate-500 truncate">{s.name}</div>
+                      </div>
+                      <span className="badge-neutral">{s.type}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
+            {marketTiles.map((item) => {
+              const TrendIcon = item.positive ? TrendingUp : TrendingDown
+              return (
+                <button
+                  key={item.symbol}
+                  onClick={() => navigate(`/stock/${item.symbol}`)}
+                  className="p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
+                    <span>{item.label}</span>
+                    <TrendIcon size={15} className={item.positive ? 'text-emerald-500' : 'text-red-500'} />
+                  </div>
+                  <div className="font-mono text-xl font-bold text-slate-950 dark:text-white">{item.value}</div>
+                  <div className={`text-sm font-semibold mt-1 ${item.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {item.change}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
+
+        <aside className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+              <Star size={18} className="text-amber-500" />
+              Watchlist
+            </h2>
+            <Link to={isSignedIn ? '/watchlist' : '/search'} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+              Open
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {watchlistPreview.map((stock) => (
+              <button
+                key={stock.symbol}
+                onClick={() => navigate(`/stock/${stock.symbol}`)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition-colors"
+              >
+                <div className="w-9 h-9 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                  {stock.symbol.slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-slate-950 dark:text-white">{stock.symbol}</div>
+                  <div className="text-xs text-slate-500 truncate">{stock.name}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-sm font-semibold text-slate-900 dark:text-white">{stock.price}</div>
+                  <div className={`text-xs font-semibold ${stock.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {stock.change}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </aside>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="font-semibold text-slate-950 dark:text-white">Sector heat</h2>
+              <p className="text-sm text-slate-500">A fast read on where market strength is flowing.</p>
+            </div>
+            <BarChart3 size={20} className="text-slate-400" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {sectorHeat.map((sector) => (
+              <div key={sector.label} className={`${sector.size} ${sector.tone} rounded-lg p-4 text-white min-h-24 flex flex-col justify-between`}>
+                <span className="text-sm font-semibold">{sector.label}</span>
+                <span className="font-mono text-xl font-bold">{sector.change}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Newspaper size={18} className="text-indigo-500" />
+            <h2 className="font-semibold text-slate-950 dark:text-white">Today&apos;s brief</h2>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Market tone</div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">Large-cap technology and banks are leading, while energy is cooling after a strong week.</p>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Risk note</div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">Watch volatility around earnings, rate commentary, and overnight US market moves.</p>
+            </div>
+            <Link to="/search" className="btn-secondary w-full">
+              Find opportunities
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {quickActions.map((item) => {
+          const Icon = item.icon
+          return (
+            <div key={item.title} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="font-semibold text-slate-950 dark:text-white mb-1">{item.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{item.text}</p>
+            </div>
+          )
+        })}
+      </section>
+
+      {!isSignedIn && (
+        <section className="bg-slate-950 border border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Save your research workspace</h2>
+            <p className="text-slate-400 mt-2">Create an account to keep watchlists, preferences, and AI insight history synced.</p>
+          </div>
+          <div className="flex gap-3">
+            <SignInButton mode="modal">
+              <button className="btn-secondary bg-slate-900 border-slate-700 text-white hover:bg-slate-800">Sign in</button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="btn-primary">Get started</button>
+            </SignUpButton>
+          </div>
+        </section>
       )}
 
       {health && (
-        <div className="text-xs text-dark-400 dark:text-dark-500 flex items-center gap-2 mt-4">
-          <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-          API {health.message}
+        <div className="flex justify-center pb-4">
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            API {health.message}
+          </div>
         </div>
       )}
     </div>

@@ -2,9 +2,16 @@ import OpenAI from 'openai';
 import { InternalServerError } from '../utils/appError.js';
 
 // We initialize the OpenAI client. It automatically looks for process.env.OPENAI_API_KEY
+// We provide a fallback dummy key so the server doesn't crash on boot if the user hasn't set up .env yet
+const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || 'dummy-key-to-prevent-crash';
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,      // Use the key from .env (Nvidia NIM API Key)
-  baseURL: 'https://integrate.api.nvidia.com/v1', // Point to Nvidia inference endpoint
+  apiKey: apiKey,
+  baseURL: 'https://openrouter.ai/api/v1', // Point to OpenRouter
+  defaultHeaders: {
+    "HTTP-Referer": "https://alphalens.app", // Optional, for including your app on openrouter.ai rankings.
+    "X-Title": "AlphaLens", // Optional. Shows in rankings on openrouter.ai.
+  }
 }); 
 
 /**
@@ -57,7 +64,7 @@ export const generateStockInsight = async (stockData, learningMode = 'beginner')
   try {
     // 3. API Call with Structured Outputs (Strict JSON)
     const response = await openai.chat.completions.create({
-      model: 'meta/llama-3.1-8b-instruct', // Uses Nvidia's standard Llama 3.1 8B Endpoint
+      model: 'meta-llama/llama-3.1-8b-instruct', // OpenRouter model ID
       temperature: 0.1,
       messages: [
         { role: 'system', content: systemPrompt },

@@ -2,14 +2,14 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    // We will use a mock URI if process.env.MONGO_URI is undefined for initial setup
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/alphalens', {
+    // We will use a mock URI if process.env.MONGODB_URI is undefined for initial setup
+    const conn = await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/alphalens', {
       serverSelectionTimeoutMS: 5000 // fail fast if mongodb is not running
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`DB Error: ${error.message}`);
-    // process.exit(1); // Removed exit so we can test the API without MongoDB installed yet
+    throw error;
   }
 };
 

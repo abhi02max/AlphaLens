@@ -1,31 +1,36 @@
-import jwt from 'jsonwebtoken';
+import { clerkMiddleware, requireAuth as clerkRequireAuth } from '@clerk/express';
 import User from '../models/user.model.js';
 import { UnauthorizedError } from '../utils/appError.js';
 
-export const protect = async (req, res, next) => {
-  let token;
-
-  // 1. Read token from Authorization header (Bearer <token>)
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+// 2. We take the valid Clerk ID and attach our DB user (Lazy Syncing)
+export const requireAuth = [
+  clerkMiddleware(),
+  clerkRequireAuth(),
+  async (req, res, next) => {
     try {
-      token = req.headers.authorization.split(' ')[1];
-
-      // 2. Verify the token signature using the secret key
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'development_secret');
-
-      // 3. Attach the user associated with this token to req.user (excluding password)
-      req.user = await User.findById(decoded.id).select('-password');
-      
-      if (!req.user) {
-        return next(new UnauthorizedError('User not found'));
+      if (!req.auth || !req.auth.userId) {
+        return next(new UnauthorizedError('Not authorized'));
       }
       
-      next(); // Move to the next middleware or controller
+      const clerkId = req.auth.userId;
+      
+      // Find or create the user in our DB
+      let user = await User.findOne({ clerkId });
+      
+      if (!user) {
+        user = await User.create({
+          clerkId,
+          learningMode: 'beginner'
+        });
+      }
+      
+      // Attach full MongoDB user so existing controllers work seamlessly
+      req.user = user;
+      
+      next();
     } catch (error) {
-      console.error('JWT Error:', error.message);
-      return next(new UnauthorizedError('Not authorized, token failed'));
+      console.error('Auth Middleware Error:', error.message);
+      return next(new UnauthorizedError('Not authorized'));
     }
-  } else {
-    return next(new UnauthorizedError('Not authorized, no token provided'));
   }
-};
+];

@@ -1,55 +1,111 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext'
+import { Suspense, lazy, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useAuth, SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
-import Home from './pages/Home'
-import StockDetail from './pages/StockDetail'
-import Search from './pages/Search'
-import Watchlist from './pages/Watchlist'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Settings from './pages/Settings'
+import api from './services/apiClient'
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+const Home = lazy(() => import('./pages/Home'))
+const StockDetail = lazy(() => import('./pages/StockDetail'))
+const Search = lazy(() => import('./pages/Search'))
+const Watchlist = lazy(() => import('./pages/Watchlist'))
+const Settings = lazy(() => import('./pages/Settings'))
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="text-center">
+        <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-3 animate-pulse">
+          <div className="w-5 h-5 rounded bg-indigo-500/70" />
+        </div>
+        <p className="text-sm font-medium text-slate-500">Loading workspace...</p>
       </div>
-    )
-  }
-
-  return isAuthenticated ? children : <Navigate to="/login" replace />
+    </div>
+  )
 }
 
-function PublicRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+// Global interceptor hook to inject Clerk token into Axios
+function TokenSetter() {
+  const { getToken } = useAuth()
+  
+  useEffect(() => {
+    const interceptor = api.interceptors.request.use(async (config) => {
+      try {
+        const token = await getToken()
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      } catch (err) {
+        console.error("Failed to get Clerk token", err)
+      }
+      return config
+    })
+    
+    return () => api.interceptors.request.eject(interceptor)
+  }, [getToken])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
-      </div>
-    )
-  }
+  return null
+}
 
-  return isAuthenticated ? <Navigate to="/" replace /> : children
+function PostHogPageTracker() {
+  const location = useLocation()
+  
+  useEffect(() => {
+    if (import.meta.env.VITE_POSTHOG_KEY) {
+      import('posthog-js').then(({ default: posthog }) => {
+        posthog.capture('$pageview', {
+          $current_url: window.location.href,
+          path: location.pathname
+        })
+      })
+    }
+  }, [location])
+  
+  return null
 }
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/stock/:symbol" element={<StockDetail />} />
-        <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <ErrorBoundary>
+      <TokenSetter />
+      <PostHogPageTracker />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={
+            <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
+              <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/" />
+            </div>
+          } />
+          <Route path="/register" element={
+            <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
+              <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/" />
+            </div>
+          } />
+
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/stock/:symbol" element={<StockDetail />} />
+
+            {/* Protected Routes using Clerk components */}
+            <Route path="/watchlist" element={
+              <>
+                <SignedIn><Watchlist /></SignedIn>
+                <SignedOut><Navigate to="/login" replace /></SignedOut>
+              </>
+            } />
+
+            <Route path="/settings" element={
+              <>
+                <SignedIn><Settings /></SignedIn>
+                <SignedOut><Navigate to="/login" replace /></SignedOut>
+              </>
+            } />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   )
 }

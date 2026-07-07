@@ -1,14 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useWatchlist } from '../hooks/useWatchlist';
-import { Eye, TrendingUp, TrendingDown, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, ArrowRight, Loader2 } from 'lucide-react';
 import { DashboardCard } from '../components/ui/DashboardCard';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useAuthStore } from '../store';
 
 const WatchlistPage = () => {
   const { data: watchlist, isLoading, isError } = useWatchlist();
-  const { user } = useAuthStore();
 
   if (isLoading) {
     return (

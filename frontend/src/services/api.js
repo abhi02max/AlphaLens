@@ -1,47 +1,32 @@
-import axios from 'axios'
+import api from './apiClient'
 
-const api = axios.create({
-  baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      delete api.defaults.headers.common['Authorization']
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  }
-)
+/**
+ * Consolidated API service layer
+ * All services use the single apiClient with proper auth handling
+ */
 
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (name, email, password, learningMode) => api.post('/auth/register', { name, email, password, learningMode }),
   getMe: () => api.get('/auth/me'),
   updatePreferences: (learningMode) => api.put('/auth/preferences', { learningMode }),
+  logout: () => api.post('/auth/logout'),
+  refresh: () => api.post('/auth/refresh'),
 }
 
 export const stockApi = {
   search: (query) => api.get('/stocks/search', { params: { q: query } }),
-  getDetails: (symbol) => api.get(`/stocks/quote/${symbol}`),
-  getChart: (symbol, range = '1mo') => api.get(`/stocks/chart/${symbol}`, { params: { range } }),
+  getDetails: (symbol) => api.get(`/stocks/quote/${encodeURIComponent(symbol)}`),
+  getChart: (symbol, range = '1mo') => api.get(`/stocks/chart/${encodeURIComponent(symbol)}`, { params: { range } }),
 }
 
 export const aiApi = {
   getInsight: (symbol, mode = 'beginner') => api.get(`/ai/insight/${symbol}`, { params: { mode } }),
+}
+
+export const userApi = {
+  getPreferences: () => api.get('/users/preferences'),
+  updateLearningMode: (mode) => api.put('/users/preferences/mode', { mode }),
 }
 
 export const watchlistApi = {

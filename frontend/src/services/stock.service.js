@@ -17,7 +17,7 @@ export const stockService = {
   },
 
   getAiInsights: async (symbol) => {
-    const response = await api.get(`/ai/insight/${symbol}?mode=beginner`);
+    const response = await api.get(`/ai/insight/${symbol}?mode=pro`);
     return response.data.data ? response.data.data.insight : response.data.insight; 
   }
 };

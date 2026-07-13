@@ -11,7 +11,7 @@ import { BadRequestError } from '../utils/appError.js';
  */
 export const getStockInsight = asyncHandler(async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
-  const mode = req.query.mode || 'beginner'; // allows /insight/AAPL?mode=pro
+  const mode = 'pro';
 
   // 1. Fetch live data from our existing Stock Service
   const stockData = await getStockDetails(symbol);
@@ -32,7 +32,7 @@ export const getStockInsight = asyncHandler(async (req, res) => {
 });
 
 export const analyzeTradeSimulation = asyncHandler(async (req, res) => {
-  const { symbol, side = 'buy', quantity, orderValue, learningMode = 'beginner' } = req.body || {};
+  const { symbol, side = 'buy', quantity, orderValue } = req.body || {};
 
   if (!symbol) {
     throw new BadRequestError('Stock symbol is required for simulation analysis.');
@@ -51,7 +51,7 @@ export const analyzeTradeSimulation = asyncHandler(async (req, res) => {
     estimatedPrice: stockData.price,
     currency: stockData.currency,
   };
-  const analysis = await generateTradeSimulationAnalysis(stockData, simulation, learningMode);
+  const analysis = await generateTradeSimulationAnalysis(stockData, simulation);
 
   res.status(200).json({
     success: true,

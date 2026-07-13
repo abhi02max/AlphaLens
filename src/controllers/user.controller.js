@@ -13,7 +13,7 @@ export const getPreferences = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        learningMode: user.learningMode,
+        learningMode: 'pro',
       }
     });
   } catch (error) {
@@ -27,15 +27,9 @@ export const getPreferences = async (req, res) => {
  */
 export const updateLearningMode = async (req, res) => {
   try {
-    const { mode } = req.body;
-    
-    if (!['beginner', 'pro'].includes(mode)) {
-      return res.status(400).json({ success: false, message: 'Invalid mode' });
-    }
-
     const user = await User.findOneAndUpdate(
       { clerkId: req.user.clerkId },
-      { learningMode: mode },
+      { learningMode: 'pro' },
       { new: true }
     );
 
@@ -46,7 +40,7 @@ export const updateLearningMode = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        learningMode: user.learningMode,
+        learningMode: 'pro',
       }
     });
   } catch (error) {

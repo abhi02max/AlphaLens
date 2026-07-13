@@ -10,7 +10,7 @@ const generateToken = (id) => {
 };
 
 export const registerUser = async (userData) => {
-  const { name, email, password, learningMode } = userData;
+  const { name, email, password } = userData;
 
   const userExists = await User.findOne({ email });
   if (userExists) {
@@ -22,7 +22,7 @@ export const registerUser = async (userData) => {
     name,
     email,
     password,
-    learningMode,
+    learningMode: 'pro',
   });
 
   // Create an empty watchlist for the new user

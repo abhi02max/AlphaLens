@@ -45,7 +45,7 @@ const quickActions = [
   { icon: LineChart, title: 'Advanced charts', text: 'Candles, volume, ranges, and clean crosshair analysis.' },
   { icon: ListFilter, title: 'Market screener', text: 'Explore stocks by symbol, asset type, exchange, and sector.' },
   { icon: Bell, title: 'Watchlists', text: 'Save ideas and return to them quickly from any device.' },
-  { icon: Brain, title: 'AI insight', text: 'Summaries, risk level, sentiment, and plain-English drivers.' },
+  { icon: Brain, title: 'Desk intelligence', text: 'Catalysts, factor risk, valuation pressure, and market-structure context.' },
 ]
 
 export default function Home() {

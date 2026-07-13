@@ -3,13 +3,13 @@ import { asyncHandler } from '../middlewares/error.middleware.js';
 import { BadRequestError, UnauthorizedError, ConflictError } from '../utils/appError.js';
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, learningMode } = req.body;
+  const { name, email, password } = req.body;
   
   if (!name || !email || !password) {
     throw new BadRequestError('Please include name, email, and password');
   }
 
-  const userData = await authService.registerUser({ name, email, password, learningMode });
+  const userData = await authService.registerUser({ name, email, password });
   
   res.status(201).json({
     success: true,
@@ -40,13 +40,7 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 export const updatePreferences = asyncHandler(async (req, res) => {
-  const { learningMode } = req.body;
-
-  if (!learningMode || !['beginner', 'pro'].includes(learningMode)) {
-    throw new BadRequestError('Learning mode must be "beginner" or "pro"');
-  }
-
-  req.user.learningMode = learningMode;
+  req.user.learningMode = 'pro';
   await req.user.save();
 
   res.status(200).json({

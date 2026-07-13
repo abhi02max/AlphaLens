@@ -1,11 +1,10 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { useAuthStore, useAppStore } from '../store';
-import { BookOpen, LineChart } from 'lucide-react';
+import { useAuthStore } from '../store';
+import { Gauge } from 'lucide-react';
 
 const MainLayout = () => {
   const { user, logout } = useAuthStore();
-  const { learningMode, toggleLearningMode } = useAppStore();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -19,13 +18,10 @@ const MainLayout = () => {
           <div className="flex items-center gap-6">
             <Link to="/watchlist" className="hover:text-fintech-blue transition-colors">Watchlist</Link>
             
-            <button 
-              onClick={toggleLearningMode}
-              className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-sm hover:bg-slate-700 transition"
-            >
-              {learningMode === 'beginner' ? <BookOpen size={16} className="text-fintech-green" /> : <LineChart size={16} className="text-fintech-blue" />}
-              {learningMode.toUpperCase()} MODE
-            </button>
+            <span className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-sm">
+              <Gauge size={16} className="text-emerald-400" />
+              LEGENDARY PRO
+            </span>
 
             {user ? (
               <div className="flex items-center gap-4">

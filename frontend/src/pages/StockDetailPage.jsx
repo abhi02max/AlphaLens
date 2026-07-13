@@ -8,17 +8,12 @@ import { DashboardCard } from '../components/ui/DashboardCard';
 import { MetricCard } from '../components/ui/MetricCard';
 import { WatchlistButton } from '../components/ui/WatchlistButton';
 import { ArrowLeft, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
-import { useAppStore } from '../store';
 
 const StockDetailPage = () => {
   const { symbol } = useParams();
   const [timeframe, setTimeframe] = useState('1mo');
   const [chartType, setChartType] = useState('area');
   
-  // Zustand state for conditional UI complexity
-  const { learningMode } = useAppStore();
-  const isBeginner = learningMode === 'beginner';
-
   const { data: quote, isLoading: quoteLoading, isError: quoteError } = useStockQuote(symbol);
   const { data: chartData, isLoading: chartLoading } = useStockChart(symbol, timeframe);
 
@@ -81,28 +76,10 @@ const StockDetailPage = () => {
               explanation="How many shares traded today. Higher volume means more liquidity."
             />
             
-            {/* Conditional Data based on Pro mode */}
-            {isBeginner ? (
-              <>
-                <MetricCard 
-                  label="P/E Ratio" 
-                  value={quote?.peRatio?.toFixed(2) || quote?.trailingPE?.toFixed(2) || 'N/A'} 
-                  explanation="Price to Earnings. A high P/E implies markets expect high growth."
-                />
-                <MetricCard 
-                  label="52-Wk Focus" 
-                  value={`$${quote?.fiftyTwoWeekHigh?.toFixed(0)} High`} 
-                  explanation="The highest price this stock has hit in the last year."
-                />
-              </>
-            ) : (
-               <>
-                <MetricCard label="P/E Trailing" value={quote?.peRatio?.toFixed(2) || quote?.trailingPE?.toFixed(2) || 'N/A'} />
-                <MetricCard label="Forward P/E" value={quote?.forwardPE?.toFixed(2) || 'N/A'} />
-                <MetricCard label="Beta (5Y)" value={quote?.beta?.toFixed(2) || 'N/A'} />
-                <MetricCard label="52W Range" value={`${quote?.fiftyTwoWeekLow?.toFixed(0)} - ${quote?.fiftyTwoWeekHigh?.toFixed(0)}`} />
-               </>
-            )}
+            <MetricCard label="P/E Trailing" value={quote?.peRatio?.toFixed(2) || quote?.trailingPE?.toFixed(2) || 'N/A'} />
+            <MetricCard label="Forward P/E" value={quote?.forwardPE?.toFixed(2) || 'N/A'} />
+            <MetricCard label="Beta (5Y)" value={quote?.beta?.toFixed(2) || 'N/A'} />
+            <MetricCard label="52W Range" value={`${quote?.fiftyTwoWeekLow?.toFixed(0)} - ${quote?.fiftyTwoWeekHigh?.toFixed(0)}`} />
           </div>
         </DashboardCard>
       )}

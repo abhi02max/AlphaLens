@@ -95,10 +95,10 @@ const createJsonCompletion = async ({
 /**
  * Generates structured AI insights based on raw stock data.
  * @param {Object} stockData - The financial metrics fetched from Yahoo Finance.
- * @param {string} learningMode - "beginner" or "pro". Decides the complexity of the language.
+ * @param {string} learningMode - Retained for API compatibility; AlphaLens always uses the professional desk profile.
  * @returns {Object} - Parsed JSON object containing the insights.
  */
-export const generateStockInsight = async (stockData, learningMode = 'beginner') => {
+export const generateStockInsight = async (stockData, learningMode = 'pro') => {
   // If no API key, return mock data for demo purposes
   if (!hasUsableAiKey) {
     return getMockInsight(stockData, learningMode);
@@ -107,8 +107,8 @@ export const generateStockInsight = async (stockData, learningMode = 'beginner')
   // 1. Prompt Engineering: The System Prompt
   // Sets the AI's identity, behavior limitations, and specific rules.
   const systemPrompt = `
-    You are an elite financial analyst working for AlphaLens.
-    Your task is to analyze raw stock data and provide insights for a ${learningMode} investor.
+    You are AlphaLens' senior equity research and market-structure analyst.
+    Produce a professional desk-grade view for an experienced market participant.
     
     RULES TO AVOID HALLUCINATIONS:
     1. Base your analysis STRICTLY on the JSON data provided by the user.
@@ -118,8 +118,8 @@ export const generateStockInsight = async (stockData, learningMode = 'beginner')
     5. Output ONLY raw, strict, parseable JSON. Do not include markdown codeblocks or any backticks.
     
     TONE:
-    - If mode is "beginner", explain metrics simply (e.g., explain what high P/E means).
-    - If mode is "pro", be concise, analytical, and use standard financial jargon.
+    - Use concise market-desk language and standard financial terminology.
+    - Do not define basic terms; assume an experienced market participant.
     
     REQUIRED JSON SCHEMA:
     {
@@ -158,14 +158,14 @@ export const generateStockInsight = async (stockData, learningMode = 'beginner')
   }
 };
 
-export const generateTradeSimulationAnalysis = async (stockData, simulation, learningMode = 'beginner') => {
+export const generateTradeSimulationAnalysis = async (stockData, simulation) => {
   if (!hasUsableAiKey) {
     return getMockTradeAnalysis(stockData, simulation);
   }
 
   const systemPrompt = `
-    You are AlphaLens, an AI financial research assistant for an educational virtual-money stock simulator.
-    Explain possible outcomes before a user takes real action elsewhere.
+    You are AlphaLens' professional trade-intelligence engine for a virtual-money stock simulator.
+    Evaluate the proposed position as a market desk would before execution.
 
     STRICT RULES:
     1. Do not give direct financial advice. Do not command the user to buy, sell, hold, or avoid.
@@ -202,7 +202,7 @@ export const generateTradeSimulationAnalysis = async (stockData, simulation, lea
     Virtual simulation details:
     ${JSON.stringify(simulation, null, 2)}
 
-    Learning mode: ${learningMode}
+    Analysis profile: Legendary Pro
   `;
 
   try {
@@ -236,7 +236,7 @@ export const generateProfessionalStockReport = async ({ stockData, chartData = [
 
     STYLE:
     - Professional, concise, market-desk tone.
-    - No beginner explanations, no tutorials, no promotional language.
+    - No basic definitions, no tutorials, no promotional language.
     - Do not say "you should buy/sell." Use "AI view", "model suggests", or "current setup favors".
     - No guaranteed predictions.
     - State uncertainty and data gaps clearly.
@@ -326,9 +326,7 @@ function getMockInsight(stockData, learningMode) {
   if (peRatio && peRatio > 30) risk = 'High';
   else if (peRatio && peRatio < 15) risk = 'Low';
   
-  const summary = learningMode === 'beginner'
-    ? `${stockData.name} (${stockData.symbol}) is currently trading at $${price.toFixed(2)}. The stock has ${change >= 0 ? 'gained' : 'declined'} ${Math.abs(changePercent).toFixed(2)}% today. ${sentiment === 'Bullish' ? 'This suggests positive momentum.' : sentiment === 'Bearish' ? 'This suggests negative momentum.' : 'The stock is relatively stable.'}`
-    : `${stockData.symbol} at $${price.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%). ${sentiment} sentiment. Risk: ${risk}. PE: ${peRatio || 'N/A'}. Market Cap: ${marketCap ? (marketCap/1e9).toFixed(1)+'B' : 'N/A'}.`;
+  const summary = `${stockData.symbol} trades at $${price.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%). Tape bias is ${sentiment.toLowerCase()} with ${risk.toLowerCase()} risk on the available valuation and liquidity inputs. P/E: ${peRatio || 'N/A'}; market cap: ${marketCap ? (marketCap / 1e9).toFixed(1) + 'B' : 'N/A'}.`;
 
   return {
     summary,
@@ -372,7 +370,7 @@ function getMockTradeAnalysis(stockData, simulation) {
     educationalVerdict,
     likelyDirection,
     confidence,
-    plainEnglishSummary: `${stockData.symbol} is trading at ${price ? price.toFixed(2) : 'an unavailable price'} with a ${changePercent >= 0 ? 'positive' : 'negative'} move of ${changePercent.toFixed(2)}%. A virtual ${simulation.side || 'buy'} of ${quantity || 'N/A'} shares helps you see how position size affects profit and loss before risking real money.`,
+    plainEnglishSummary: `${stockData.symbol} is trading at ${price ? price.toFixed(2) : 'an unavailable price'} with a ${changePercent >= 0 ? 'positive' : 'negative'} move of ${changePercent.toFixed(2)}%. The simulated ${simulation.side || 'buy'} of ${quantity || 'N/A'} shares creates the following exposure and scenario profile before live execution.`,
     whyItMayRise: [
       upward ? 'Current price momentum is positive.' : 'A recovery could happen if buyers step in near support levels.',
       volumeElevated ? 'Volume is above average, which can confirm stronger market interest.' : 'Stable volume may support a calmer move.',
@@ -386,7 +384,7 @@ function getMockTradeAnalysis(stockData, simulation) {
     whatMovedItRecently: `Based on available data, the recent move appears linked to price momentum (${changePercent.toFixed(2)}%), trading range, volume, and valuation. No verified news catalyst was provided in the data.`,
     simulationImpact: {
       virtualAmount: amount ? `${amount.toFixed(2)} virtual currency units` : 'Not enough data',
-      positionSizeComment: amount > 20000 ? 'This is a large simulated position, so swings will strongly affect your portfolio.' : 'This is a moderate simulated position for learning position sizing.',
+      positionSizeComment: amount > 20000 ? 'Position notional is material relative to the virtual book; mark-to-market sensitivity is elevated.' : 'Position notional is moderate relative to the virtual book; monitor concentration and liquidity.',
       riskIfFalls5Percent: `A 5% fall would reduce this virtual position by about ${riskFive.toFixed(2)}.`,
       gainIfRises5Percent: `A 5% rise would increase this virtual position by about ${gainFive.toFixed(2)}.`,
     },
@@ -397,7 +395,7 @@ function getMockTradeAnalysis(stockData, simulation) {
       'Decide your maximum loss before entering.',
       'Use the simulator for multiple scenarios before using real money.',
     ],
-    notFinancialAdvice: 'This is educational simulator analysis, not a recommendation to buy or sell.',
+    notFinancialAdvice: 'Analytical simulation output only; not licensed financial advice or a directive to trade.',
   };
 }
 

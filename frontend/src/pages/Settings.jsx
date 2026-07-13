@@ -1,49 +1,9 @@
-import { useState, useEffect } from 'react'
 import { UserProfile } from '@clerk/clerk-react'
 import { useTheme } from '../context/ThemeContext'
-import { userApi } from '../services/api'
-import toast from 'react-hot-toast'
-import { Settings as SettingsIcon, Palette, BookOpen, Rocket, Sun, Moon } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Gauge, Sun, Moon } from 'lucide-react'
 
 export default function Settings() {
   const { theme, toggleTheme } = useTheme()
-  const [mode, setMode] = useState('beginner')
-  const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchPrefs = async () => {
-      try {
-        const res = await userApi.getPreferences()
-        if (res.data?.data?.learningMode) {
-          setMode(res.data.data.learningMode)
-        }
-      } catch (err) {
-        console.error('Failed to load preferences', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchPrefs()
-  }, [])
-
-  const handleModeChange = async (newMode) => {
-    if (newMode === mode) return
-    const prevMode = mode
-    setMode(newMode)
-    setSaving(true)
-    try {
-      await userApi.updateLearningMode(newMode)
-      toast.success(`Switched to ${newMode} mode`)
-    } catch (err) {
-      console.error(err)
-      toast.error('Failed to update mode')
-      setMode(prevMode)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
     <div className="animate-fade-in max-w-3xl mx-auto space-y-8">
       {/* Header */}
@@ -90,60 +50,24 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Learning Mode */}
+          {/* Workspace Profile */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
               <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <BookOpen size={18} className="text-emerald-500" />
-                Learning Mode
+                <Gauge size={18} className="text-emerald-500" />
+                Workspace Profile
               </h2>
             </div>
             <div className="p-5">
-              <p className="text-xs text-slate-500 mb-4">Controls how AI insights are presented.</p>
-              {loading ? (
-                <div className="animate-pulse space-y-3">
-                  <div className="h-16 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
-                  <div className="h-16 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/20 p-4">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                  <Gauge size={18} />
+                  <span className="font-bold text-sm uppercase tracking-wide">Legendary Pro</span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <button
-                    onClick={() => handleModeChange('beginner')}
-                    disabled={saving}
-                    className={`w-full p-4 rounded-lg border text-left transition-all flex items-start gap-3 ${
-                      mode === 'beginner'
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className={`mt-0.5 ${mode === 'beginner' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                      <BookOpen size={18} />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm text-slate-900 dark:text-white mb-0.5">Beginner</div>
-                      <div className="text-xs text-slate-500">Simplified, jargon-free</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleModeChange('pro')}
-                    disabled={saving}
-                    className={`w-full p-4 rounded-lg border text-left transition-all flex items-start gap-3 ${
-                      mode === 'pro'
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className={`mt-0.5 ${mode === 'pro' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                      <Rocket size={18} />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm text-slate-900 dark:text-white mb-0.5">Pro</div>
-                      <div className="text-xs text-slate-500">Advanced metrics & TA</div>
-                    </div>
-                  </button>
-                </div>
-              )}
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 mt-2">
+                  Full market-desk presentation with technical studies, valuation context, catalyst intelligence, simulation risk, and execution triggers.
+                </p>
+              </div>
             </div>
           </div>
         </div>

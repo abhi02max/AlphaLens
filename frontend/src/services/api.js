@@ -7,9 +7,9 @@ import api from './apiClient'
 
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
-  register: (name, email, password, learningMode) => api.post('/auth/register', { name, email, password, learningMode }),
+  register: (name, email, password) => api.post('/auth/register', { name, email, password }),
   getMe: () => api.get('/auth/me'),
-  updatePreferences: (learningMode) => api.put('/auth/preferences', { learningMode }),
+  updatePreferences: () => api.put('/auth/preferences', { learningMode: 'pro' }),
   logout: () => api.post('/auth/logout'),
   refresh: () => api.post('/auth/refresh'),
 }
@@ -22,14 +22,14 @@ export const stockApi = {
 }
 
 export const aiApi = {
-  getInsight: (symbol, mode = 'beginner') => api.get(`/ai/insight/${symbol}`, { params: { mode } }),
+  getInsight: (symbol) => api.get(`/ai/insight/${symbol}`, { params: { mode: 'pro' } }),
   getProfessionalReport: (symbol) => api.get(`/ai/report/${encodeURIComponent(symbol)}`),
   analyzeSimulation: (payload) => api.post('/ai/simulate', payload, { timeout: 15000 }),
 }
 
 export const userApi = {
   getPreferences: () => api.get('/users/preferences'),
-  updateLearningMode: (mode) => api.put('/users/preferences/mode', { mode }),
+  updateLearningMode: () => api.put('/users/preferences/mode', { mode: 'pro' }),
 }
 
 export const watchlistApi = {

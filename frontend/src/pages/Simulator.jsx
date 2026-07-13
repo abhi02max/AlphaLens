@@ -239,7 +239,6 @@ export default function Simulator() {
       side,
       quantity: shares,
       orderValue: shares * selectedQuote.price,
-      learningMode: 'beginner',
     })
   }
 
@@ -256,7 +255,7 @@ export default function Simulator() {
               Practice investing without real money.
             </h1>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-3 max-w-3xl">
-              Search any supported global ticker, place simulated buy or sell orders, track profit and loss, and learn how price movement affects a portfolio.
+              Search any supported global ticker, place simulated buy or sell orders, track mark-to-market P/L, and stress-test a position before execution.
             </p>
           </div>
           <button
@@ -401,7 +400,7 @@ export default function Simulator() {
               className="btn-secondary w-full disabled:opacity-50"
             >
               <Brain size={16} />
-              {analysisMutation.isPending ? 'Analyzing setup...' : 'AI analyze before real money'}
+              {analysisMutation.isPending ? 'Analyzing setup...' : 'Analyze setup before execution'}
             </button>
           </div>
         </div>
@@ -468,10 +467,10 @@ export default function Simulator() {
             <div>
               <h2 className="font-semibold text-xl text-slate-950 dark:text-white flex items-center gap-2">
                 <Sparkles size={20} className="text-emerald-500" />
-                AI simulator decision lab
+                Trade intelligence lab
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Educational analysis for {analysisResult.symbol}. This helps you learn before using a real broker.
+                Desk-style scenario analysis for {analysisResult.symbol} using current quote, valuation, liquidity, and position inputs.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -483,7 +482,7 @@ export default function Simulator() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 rounded-2xl bg-emerald-50/60 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 p-5">
-              <h3 className="font-semibold text-slate-950 dark:text-white mb-2">Plain-English read</h3>
+              <h3 className="font-semibold text-slate-950 dark:text-white mb-2">Executive setup</h3>
               <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                 {analysisResult.analysis.plainEnglishSummary}
               </p>
@@ -508,7 +507,7 @@ export default function Simulator() {
             <AnalysisList title="Why it may rise" items={analysisResult.analysis.whyItMayRise} tone="green" />
             <AnalysisList title="Why it may fall" items={analysisResult.analysis.whyItMayFall} tone="red" />
             <AnalysisList title="Missing data to check" items={analysisResult.analysis.missingDataToCheck} />
-            <AnalysisList title="Before real money" items={analysisResult.analysis.beforeRealMoneyChecklist} />
+            <AnalysisList title="Execution checklist" items={analysisResult.analysis.beforeRealMoneyChecklist} />
           </div>
 
           <p className="text-xs text-slate-500 mt-5">{analysisResult.analysis.notFinancialAdvice}</p>

@@ -22,9 +22,3 @@ export const useAuthStore = create((set) => ({
   },
 }));
 
-export const useAppStore = create((set) => ({
-  learningMode: 'beginner', // Global state to toggle UI complexity across all pages
-  toggleLearningMode: () => set((state) => ({ 
-    learningMode: state.learningMode === 'beginner' ? 'pro' : 'beginner' 
-  })),
-}));

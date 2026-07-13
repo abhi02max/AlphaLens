@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
     return userData
   }
 
-  const register = async (name, email, password, learningMode = 'beginner') => {
-    const response = await api.post('/auth/register', { name, email, password, learningMode })
+  const register = async (name, email, password) => {
+    const response = await api.post('/auth/register', { name, email, password })
     const { token, ...userData } = response.data.data
     localStorage.setItem('token', token)
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -52,8 +52,8 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  const updateLearningMode = async (mode) => {
-    const response = await api.put('/auth/preferences', { learningMode: mode })
+  const updateLearningMode = async () => {
+    const response = await api.put('/auth/preferences', { learningMode: 'pro' })
     setUser(response.data.data)
     return response.data.data
   }

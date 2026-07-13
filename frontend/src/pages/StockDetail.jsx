@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { stockApi, aiApi, watchlistApi, userApi } from '../services/api'
+import { stockApi, aiApi, watchlistApi } from '../services/api'
 import { useUser } from '@clerk/clerk-react'
 import StockChart from '../components/StockChart'
 import MetricCard from '../components/MetricCard'
@@ -31,13 +31,6 @@ export default function StockDetail() {
   const { isSignedIn } = useUser()
   const [range, setRange] = useState('1d')
   const [chartType, setChartType] = useState('line')
-
-  const { data: prefs } = useQuery({
-    queryKey: ['preferences'],
-    queryFn: () => userApi.getPreferences().then(r => r.data.data),
-    enabled: isSignedIn,
-  })
-  const mode = prefs?.learningMode || 'beginner'
 
   const { data: details, isLoading: loadingDetails, isFetching: refreshingDetails } = useQuery({
     queryKey: ['stock', symbol],
@@ -92,6 +85,8 @@ export default function StockDetail() {
     const withoutLivePoint = chartData.filter(point => !point.liveQuotePoint)
     return [...withoutLivePoint, latestPoint]
   }, [chartData, details, range])
+
+  const technicalSnapshot = useMemo(() => buildTechnicalSnapshot(liveChartData), [liveChartData])
 
   const handleAddWatchlist = async () => {
     if (!isSignedIn) {
@@ -252,13 +247,11 @@ export default function StockDetail() {
                 )}
               </div>
               
-              <div className="mt-4 flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${mode === 'beginner' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
-                  {mode === 'beginner' ? '📖 Beginner Mode' : '🚀 Pro Mode'}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  Legendary Pro Workspace
                 </span>
-                <span className="text-xs text-slate-400 font-medium">
-                  {mode === 'beginner' ? 'Simplified insights' : 'Advanced metrics'}
-                </span>
+                <span className="text-xs text-slate-400 font-medium">Institutional market view</span>
               </div>
             </div>
           </div>
@@ -367,19 +360,18 @@ export default function StockDetail() {
               AlphaLens merged live data from {details.providersUsed.join(', ')} to reduce missing metrics.
             </div>
           )}
-          <MetricCard label={mode === 'beginner' ? 'Market Value' : 'Market Cap'} value={formatCompact(details.marketCap)} icon={BarChart3} />
+          <MetricCard label="Market Cap" value={formatCompact(details.marketCap)} icon={BarChart3} />
           <MetricCard
-            label={mode === 'beginner' ? 'Price-to-Earnings' : 'P/E Ratio'}
+            label="P/E Ratio"
             value={details.peRatio?.toFixed(2) || 'Not reported'}
-            explanation={mode === 'beginner' ? 'How much you pay for each dollar of profit' : ''}
             icon={TrendingUp}
           />
-          <MetricCard label="EPS" value={details.eps?.toFixed(2) || 'Not reported'} explanation={mode === 'beginner' ? 'Profit per share' : ''} />
+          <MetricCard label="EPS" value={details.eps?.toFixed(2) || 'Not reported'} />
           <MetricCard label="Volume" value={formatCompact(details.volume)} />
           <MetricCard label="Avg Volume" value={formatCompact(details.avgVolume)} icon={Activity} />
           <MetricCard label="Open" value={formatCurrency(details.open)} />
           <MetricCard label="Prev Close" value={formatCurrency(details.previousClose)} />
-          <MetricCard label="Beta" value={details.beta?.toFixed(2) || 'Not reported'} explanation={mode === 'beginner' ? 'How volatile the stock is versus the market' : ''} icon={Gauge} />
+          <MetricCard label="Beta" value={details.beta?.toFixed(2) || 'Not reported'} icon={Gauge} />
 
           <div className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">52 Week Range</h3>
@@ -404,6 +396,30 @@ export default function StockDetail() {
           </div>
         </div>
       </div>
+
+      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 className="font-semibold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <Activity size={18} className="text-emerald-500" />
+              Market Desk Signals
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">Calculated from the active price and volume stream</p>
+          </div>
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live technicals
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+          <SignalMetric label="Trend regime" value={technicalSnapshot.trend} tone={technicalSnapshot.trendTone} />
+          <SignalMetric label="RSI (14)" value={technicalSnapshot.rsi} tone={technicalSnapshot.rsiTone} />
+          <SignalMetric label="EMA (20)" value={technicalSnapshot.ema20 == null ? 'Not reported' : formatCurrency(technicalSnapshot.ema20)} />
+          <SignalMetric label="Relative volume" value={technicalSnapshot.relativeVolume} tone={technicalSnapshot.volumeTone} />
+          <SignalMetric label="Realized vol" value={technicalSnapshot.realizedVol} />
+          <SignalMetric label="VWAP" value={technicalSnapshot.vwap == null ? 'Not reported' : formatCurrency(technicalSnapshot.vwap)} />
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
@@ -642,6 +658,72 @@ function ReportPanel({ id, title, items = [] }) {
       </div>
     </div>
   )
+}
+
+function SignalMetric({ label, value, tone = 'neutral' }) {
+  const toneClass = tone === 'positive'
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : tone === 'negative'
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-slate-950 dark:text-white'
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 min-w-0">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500 truncate">{label}</div>
+      <div className={`mt-2 text-sm font-bold font-mono truncate ${toneClass}`}>{value}</div>
+    </div>
+  )
+}
+
+function buildTechnicalSnapshot(data = []) {
+  const rows = (data || [])
+    .filter(point => point?.close != null && Number.isFinite(Number(point.close)))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+  const closes = rows.map(point => Number(point.close))
+  const last = closes.at(-1)
+
+  if (!last) {
+    return {
+      trend: 'Not reported',
+      rsi: 'Not reported',
+      ema20: null,
+      relativeVolume: 'Not reported',
+      realizedVol: 'Not reported',
+      vwap: null,
+    }
+  }
+
+  const window = closes.slice(-20)
+  const multiplier = 2 / (window.length + 1)
+  const ema20 = window.reduce((ema, close, index) => index === 0 ? close : (close * multiplier) + (ema * (1 - multiplier)), window[0])
+  const changes = closes.slice(-15).map((close, index, values) => index === 0 ? 0 : close - values[index - 1]).slice(1)
+  const gains = changes.filter(change => change > 0)
+  const losses = changes.filter(change => change < 0).map(change => Math.abs(change))
+  const averageGain = gains.reduce((sum, value) => sum + value, 0) / Math.max(changes.length, 1)
+  const averageLoss = losses.reduce((sum, value) => sum + value, 0) / Math.max(changes.length, 1)
+  const rsi = averageLoss === 0 ? 100 : 100 - (100 / (1 + (averageGain / averageLoss)))
+  const returns = closes.slice(1).map((close, index) => ((close - closes[index]) / closes[index]) * 100).filter(Number.isFinite)
+  const meanReturn = returns.reduce((sum, value) => sum + value, 0) / Math.max(returns.length, 1)
+  const variance = returns.reduce((sum, value) => sum + ((value - meanReturn) ** 2), 0) / Math.max(returns.length, 1)
+  const realizedVol = Math.sqrt(variance)
+  const volumeRows = rows.filter(point => Number.isFinite(Number(point.volume)) && Number(point.volume) > 0)
+  const currentVolume = Number(volumeRows.at(-1)?.volume)
+  const averageVolume = volumeRows.slice(-21, -1).reduce((sum, point) => sum + Number(point.volume), 0) / Math.max(volumeRows.slice(-21, -1).length, 1)
+  const relativeVolume = currentVolume && averageVolume ? currentVolume / averageVolume : null
+  const vwapVolume = volumeRows.reduce((sum, point) => sum + (Number(point.close) * Number(point.volume)), 0)
+  const vwap = volumeRows.length ? vwapVolume / volumeRows.reduce((sum, point) => sum + Number(point.volume), 0) : null
+
+  return {
+    trend: last >= ema20 ? 'Bullish' : 'Bearish',
+    trendTone: last >= ema20 ? 'positive' : 'negative',
+    rsi: Number.isFinite(rsi) ? rsi.toFixed(1) : 'Not reported',
+    rsiTone: rsi >= 70 ? 'negative' : rsi <= 30 ? 'positive' : 'neutral',
+    ema20,
+    relativeVolume: relativeVolume == null ? 'Not reported' : `${relativeVolume.toFixed(2)}x`,
+    volumeTone: relativeVolume >= 1.2 ? 'positive' : relativeVolume <= 0.8 ? 'negative' : 'neutral',
+    realizedVol: Number.isFinite(realizedVol) ? `${realizedVol.toFixed(2)}%` : 'Not reported',
+    vwap,
+  }
 }
 
 function ToolkitLink({ href, title, body }) {

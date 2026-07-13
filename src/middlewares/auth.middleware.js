@@ -20,7 +20,7 @@ export const requireAuth = [
       if (!user) {
         user = await User.create({
           clerkId,
-          learningMode: 'beginner'
+          learningMode: 'pro'
         });
       }
       

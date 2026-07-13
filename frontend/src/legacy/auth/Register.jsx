@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', learningMode: 'beginner' })
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
@@ -15,7 +15,7 @@ export default function Register() {
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
     setLoading(true)
     try {
-      await register(form.name, form.email, form.password, form.learningMode)
+      await register(form.name, form.email, form.password)
       toast.success('Account created!')
       navigate('/')
     } catch (err) {
@@ -50,27 +50,6 @@ export default function Register() {
           <div>
             <label className="label">Password</label>
             <input type="password" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} className="input" placeholder="At least 6 characters" required />
-          </div>
-          <div>
-            <label className="label">Learning Mode</label>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setForm({...form, learningMode: 'beginner'})}
-                className={`flex-1 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  form.learningMode === 'beginner'
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                    : 'border-dark-200 dark:border-dark-700 text-dark-600 dark:text-dark-400'
-                }`}>
-                📖 Beginner
-              </button>
-              <button type="button" onClick={() => setForm({...form, learningMode: 'pro'})}
-                className={`flex-1 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  form.learningMode === 'pro'
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                    : 'border-dark-200 dark:border-dark-700 text-dark-600 dark:text-dark-400'
-                }`}>
-                🚀 Pro
-              </button>
-            </div>
           </div>
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
             {loading ? 'Creating account...' : 'Create Account'}

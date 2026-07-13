@@ -59,10 +59,7 @@ export const API_CONFIG = {
 // Chart Configuration
 export const CHART_TIMEFRAMES = ['1d', '5d', '1mo', '3mo', '6mo', '1y', 'max']
 
-export const LEARNING_MODES = {
-  BEGINNER: 'beginner',
-  PRO: 'pro',
-}
+export const WORKSPACE_PROFILE = 'legendary-pro'
 
 // UI Configuration
 export const UI_CONFIG = {

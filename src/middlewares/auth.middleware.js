@@ -14,15 +14,13 @@ export const requireAuth = [
       
       const clerkId = req.auth.userId;
       
-      // Find or create the user in our DB
-      let user = await User.findOne({ clerkId });
-      
-      if (!user) {
-        user = await User.create({
-          clerkId,
-          learningMode: 'pro'
-        });
-      }
+      // Atomically create the local profile on first authenticated request.
+      // Upsert avoids a duplicate-key race when the first page makes parallel API calls.
+      const user = await User.findOneAndUpdate(
+        { clerkId },
+        { $setOnInsert: { clerkId, learningMode: 'pro' } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
       
       // Attach full MongoDB user so existing controllers work seamlessly
       req.user = user;

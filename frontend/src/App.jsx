@@ -81,14 +81,26 @@ export default function App() {
       <PostHogPageTracker />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/login" element={
+          <Route path="/login/*" element={
             <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
-              <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/" />
+              <SignIn
+                routing="path"
+                path="/login"
+                signUpUrl="/register"
+                fallbackRedirectUrl="/"
+                signUpFallbackRedirectUrl="/register"
+              />
             </div>
           } />
-          <Route path="/register" element={
+          <Route path="/register/*" element={
             <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
-              <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/" />
+              <SignUp
+                routing="path"
+                path="/register"
+                signInUrl="/login"
+                fallbackRedirectUrl="/"
+                signInFallbackRedirectUrl="/login"
+              />
             </div>
           } />
 

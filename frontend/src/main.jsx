@@ -37,7 +37,7 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 if (!clerkPubKey) {
-  console.error("Missing Publishable Key")
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY')
 }
 
 const queryClient = new QueryClient({
@@ -52,7 +52,12 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+      afterSignOutUrl="/login"
+    >
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ThemeProvider>

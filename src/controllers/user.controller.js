@@ -5,9 +5,10 @@ import User from '../models/user.model.js';
  */
 export const getPreferences = async (req, res) => {
   try {
-    const user = await User.findOne({ clerkId: req.user.clerkId });
+    // requireAuth has already atomically synchronized and attached this user.
+    const user = req.user;
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found in database' });
+      return res.status(401).json({ success: false, message: 'Authenticated user profile is unavailable' });
     }
     
     res.status(200).json({

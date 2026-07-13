@@ -289,6 +289,27 @@ export const marketDataProviders = {
         provider: this.name,
       }));
     },
+    async news(symbol) {
+      const to = new Date();
+      const from = new Date();
+      from.setDate(from.getDate() - 14);
+      const url = new URL('https://finnhub.io/api/v1/company-news');
+      url.searchParams.set('symbol', symbol);
+      url.searchParams.set('from', from.toISOString().slice(0, 10));
+      url.searchParams.set('to', to.toISOString().slice(0, 10));
+      url.searchParams.set('token', process.env.FINNHUB_API_KEY);
+      const data = await requestJson(url, this.name);
+      return (data || []).map(item => ({
+        title: item.headline,
+        publisher: item.source || this.name,
+        link: item.url,
+        publishedAt: item.datetime ? new Date(item.datetime * 1000).toISOString() : undefined,
+        type: 'company',
+        relatedTickers: [symbol],
+        scope: 'company',
+        provider: this.name,
+      }));
+    },
   },
 
   fmp: {
@@ -500,18 +521,32 @@ export const getMarketNews = async (symbol, companyName, sector) => {
   }
 
   const queries = [
-    `${symbol} ${companyName || ''} stock earnings financial news`,
-    sector ? `${sector} sector market news stocks` : null,
-    'stock market macro financial news',
+    { text: `${symbol} ${companyName || ''} stock earnings financial news`, scope: 'company' },
+    sector ? { text: `${sector} sector market news stocks`, scope: 'sector' } : null,
+    { text: 'stock market macro financial news', scope: 'macro' },
   ].filter(Boolean);
 
   const seen = new Set();
   const news = [];
 
-  for (const query of queries) {
+  if (marketDataProviders.finnhub.enabled()) {
+    try {
+      const finnhubNews = await marketDataProviders.finnhub.news(symbol);
+      for (const item of finnhubNews) {
+        const key = item.link || item.title;
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        news.push({ ...item, relevanceScore: 10 });
+      }
+    } catch (error) {
+      console.warn(`Finnhub news failed for "${symbol}":`, redactSecrets(error.message));
+    }
+  }
+
+  for (const queryPlan of queries) {
     try {
       const results = await yahooFinance.search(
-        query,
+        queryPlan.text,
         { quotesCount: 0, newsCount: 6 },
         { validateResult: false }
       );
@@ -530,17 +565,19 @@ export const getMarketNews = async (symbol, companyName, sector) => {
         };
         news.push({
           ...normalizedItem,
+          scope: queryPlan.scope,
+          provider: 'Yahoo Finance',
           relevanceScore: newsRelevanceScore(normalizedItem, { symbol, companyName, sector }),
         });
       }
     } catch (error) {
-      console.warn(`Yahoo Finance news failed for "${query}":`, redactSecrets(error.message));
+      console.warn(`Yahoo Finance news failed for "${queryPlan.text}":`, redactSecrets(error.message));
     }
   }
 
   return news
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
-    .filter(item => item.relevanceScore > 0)
+    .filter(item => item.relevanceScore > 0 || item.scope === 'macro')
     .slice(0, 10)
     .map(({ relevanceScore, ...item }) => item);
 };

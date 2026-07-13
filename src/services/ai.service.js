@@ -13,6 +13,10 @@ const openRouterModels = (process.env.OPENROUTER_MODELS || process.env.OPENROUTE
   .split(',')
   .map(model => model.trim())
   .filter(Boolean);
+const prioritizedOpenRouterModels = [
+  ...openRouterModels.filter(model => model.endsWith(':free')),
+  ...openRouterModels.filter(model => !model.endsWith(':free')),
+];
 const openRouterTimeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 25000);
 
 const openai = new OpenAI({
@@ -42,17 +46,22 @@ const parseJsonContent = (content) => {
   }
 };
 
-const createJsonCompletion = async ({ temperature, messages }) => {
+const createJsonCompletion = async ({
+  temperature,
+  messages,
+  timeoutMs = openRouterTimeoutMs,
+  maxModels = prioritizedOpenRouterModels.length,
+}) => {
   let lastError;
 
-  for (const model of openRouterModels) {
+  for (const model of prioritizedOpenRouterModels.slice(0, maxModels)) {
     try {
       return await openai.chat.completions.create({
         model,
         temperature,
         messages,
         response_format: { type: 'json_object' },
-        timeout: openRouterTimeoutMs,
+        timeout: timeoutMs,
       });
     } catch (error) {
       lastError = error;
@@ -69,18 +78,7 @@ const createJsonCompletion = async ({ temperature, messages }) => {
             model,
             temperature,
             messages,
-            timeout: openRouterTimeoutMs,
-          });
-        } catch (retryError) {
-          lastError = retryError;
-        }
-      } else {
-        try {
-          return await openai.chat.completions.create({
-            model,
-            temperature,
-            messages,
-            timeout: openRouterTimeoutMs,
+            timeout: timeoutMs,
           });
         } catch (retryError) {
           lastError = retryError;
@@ -210,6 +208,8 @@ export const generateTradeSimulationAnalysis = async (stockData, simulation, lea
   try {
     const response = await createJsonCompletion({
       temperature: 0.15,
+      timeoutMs: Number(process.env.OPENROUTER_SIMULATION_TIMEOUT_MS || 7000),
+      maxModels: Number(process.env.OPENROUTER_SIMULATION_MAX_MODELS || 1),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

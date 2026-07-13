@@ -1,4 +1,5 @@
 import * as stockService from '../services/stock.service.js';
+import { getMarketNews } from '../services/marketData.providers.js';
 import { asyncHandler } from '../middlewares/error.middleware.js';
 import { BadRequestError, NotFoundError } from '../utils/appError.js';
 
@@ -65,5 +66,26 @@ export const getStockChart = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: chartData,
+  });
+});
+
+/**
+ * @desc    Get connected financial news for a stock
+ * @route   GET /api/stocks/news/:symbol
+ * @access  Public
+ */
+export const getStockNews = asyncHandler(async (req, res) => {
+  const symbol = req.params.symbol.toUpperCase();
+  const stockDetails = await stockService.getStockDetails(symbol);
+  const news = await getMarketNews({
+    symbol: stockDetails.symbol || symbol,
+    companyName: stockDetails.name,
+    sector: stockDetails.sector,
+  });
+
+  res.status(200).json({
+    success: true,
+    symbol: stockDetails.symbol || symbol,
+    data: news,
   });
 });

@@ -58,6 +58,14 @@ export default function StockDetail() {
     refetchOnWindowFocus: true,
   })
 
+  const { data: connectedNews = [], isLoading: loadingNews } = useQuery({
+    queryKey: ['stock-news', symbol],
+    queryFn: () => stockApi.getNews(symbol).then(r => r.data.data || []),
+    enabled: !!symbol,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  })
+
   const { data: professionalReport } = useQuery({
     queryKey: ['professional-report', symbol],
     queryFn: () => aiApi.getProfessionalReport(symbol).then(r => r.data.data),
@@ -173,8 +181,9 @@ export default function StockDetail() {
   const newsAnalysis = (marketReport.newsCatalystSummary || []).filter(item =>
     item?.headline && !/no verified|enrichment pending|market item unavailable/i.test(item.headline)
   )
-  const financialNews = professionalReport?.news?.length
-    ? professionalReport.news.map((item, index) => ({
+  const sourceNews = connectedNews.length ? connectedNews : (professionalReport?.news || [])
+  const financialNews = sourceNews.length
+    ? sourceNews.map((item, index) => ({
         ...item,
         headline: item.title,
         whyItMatters: newsAnalysis[index]?.whyItMatters || 'Review the headline alongside price, volume, and sector-relative follow-through.',
@@ -573,10 +582,17 @@ export default function StockDetail() {
                 <h3 className="font-semibold text-slate-950 dark:text-white">Financial News</h3>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-1">News catalyst summary</p>
               </div>
-              <span className="text-xs font-semibold text-slate-500">{financialNews.length} headline{financialNews.length === 1 ? '' : 's'}</span>
+              <span className="text-xs font-semibold text-slate-500">
+                {loadingNews && financialNews.length === 0 ? 'Updating feed' : `${financialNews.length} headline${financialNews.length === 1 ? '' : 's'}`}
+              </span>
             </div>
             <div className="space-y-4">
-              {financialNews.length === 0 && (
+              {loadingNews && financialNews.length === 0 && (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5 text-sm text-slate-500">
+                  Loading connected market headlines...
+                </div>
+              )}
+              {!loadingNews && financialNews.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5 text-sm text-slate-500">
                   No market-moving company, sector, or macro headlines are connected for this symbol yet.
                 </div>

@@ -10,7 +10,7 @@ export const SkeletonBox = ({ className = "" }) => {
 };
 
 export const SummarySkeleton = () => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
     <div className="flex justify-between items-start mb-6">
       <div>
         <SkeletonBox className="h-8 w-48 mb-2" />
@@ -34,7 +34,7 @@ export const SummarySkeleton = () => (
 );
 
 export const ChartSkeleton = () => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mt-6 h-[400px] flex items-end gap-2 pb-6">
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mt-6 h-[400px] flex items-end gap-2 pb-6">
     {Array.from({ length: 20 }).map((_, i) => (
       <SkeletonBox 
         key={i} 
@@ -46,7 +46,7 @@ export const ChartSkeleton = () => (
 );
 
 export const AiInsightSkeleton = () => (
-  <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 p-6 rounded-xl shadow-sm border border-indigo-100 mt-6">
+  <div className="bg-gradient-to-br from-slate-50 to-emerald-50/30 p-6 rounded-2xl shadow-sm border border-emerald-100 mt-6">
     <div className="flex items-center gap-2 mb-4">
       <SkeletonBox className="h-6 w-6 rounded-full" />
       <SkeletonBox className="h-6 w-40" />

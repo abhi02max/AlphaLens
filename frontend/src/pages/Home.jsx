@@ -96,11 +96,11 @@ export default function Home() {
   return (
     <div className="animate-fade-in space-y-6">
       <section className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div>
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 mb-2">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-2">
                   <ShieldCheck size={14} />
                   Market workspace
                 </div>
@@ -126,7 +126,7 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleSearch} className="relative mt-6">
-              <div className="relative flex items-center rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-indigo-500">
+              <div className="relative flex items-center rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-emerald-500">
                 <Search size={20} className="absolute left-4 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
@@ -188,13 +188,13 @@ export default function Home() {
           </div>
         </div>
 
-        <aside className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+        <aside className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-slate-950 dark:text-white flex items-center gap-2">
               <Star size={18} className="text-amber-500" />
               Watchlist
             </h2>
-            <Link to={isSignedIn ? '/watchlist' : '/search'} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+            <Link to={isSignedIn ? '/watchlist' : '/search'} className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
               Open
             </Link>
           </div>
@@ -225,7 +225,7 @@ export default function Home() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-semibold text-slate-950 dark:text-white">Sector heat</h2>
@@ -243,9 +243,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Newspaper size={18} className="text-indigo-500" />
+            <Newspaper size={18} className="text-emerald-500" />
             <h2 className="font-semibold text-slate-950 dark:text-white">Today&apos;s brief</h2>
           </div>
           <div className="space-y-4">
@@ -269,9 +269,9 @@ export default function Home() {
         {quickActions.map((item) => {
           const Icon = item.icon
           return (
-            <div key={item.title} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
-                <Icon size={20} className="text-indigo-600 dark:text-indigo-400" />
+            <div key={item.title} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="font-semibold text-slate-950 dark:text-white mb-1">{item.title}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">{item.text}</p>
@@ -281,7 +281,7 @@ export default function Home() {
       </section>
 
       {!isSignedIn && (
-        <section className="bg-slate-950 border border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        <section className="bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div>
             <h2 className="text-2xl font-bold text-white">Save your research workspace</h2>
             <p className="text-slate-400 mt-2">Create an account to keep watchlists, preferences, and AI insight history synced.</p>

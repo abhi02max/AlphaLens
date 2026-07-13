@@ -26,11 +26,11 @@ const AiInsightCard = ({ symbol }) => {
   return (
     <DashboardCard className="bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 text-white relative overflow-hidden h-full flex flex-col">
       {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/4 pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/4 pointer-events-none"></div>
       
       <div className="flex items-center justify-between mb-6 relative z-10">
         <div className="flex items-center gap-2">
-          <Sparkles className="text-blue-400" size={20} />
+          <Sparkles className="text-emerald-400" size={20} />
           <h3 className="text-lg font-bold text-white tracking-wide">AlphaLens Analysis</h3>
         </div>
         <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 px-3 py-1 rounded-full text-xs font-mono text-slate-300">
@@ -42,7 +42,7 @@ const AiInsightCard = ({ symbol }) => {
       <div className="relative z-10 flex-1">
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-300 uppercase tracking-wider">
-            <CheckCircle2 size={16} className="text-blue-400" /> Key Takeaway
+            <CheckCircle2 size={16} className="text-emerald-400" /> Key Takeaway
           </div>
           <p className="text-slate-200 text-sm leading-relaxed">
             {insights.summary}

@@ -51,7 +51,7 @@ const SearchBar = () => {
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
-          className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-fintech-blue/50 text-slate-800 text-lg transition-shadow"
+          className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-fintech-blue/50 text-slate-800 text-lg transition-shadow"
           placeholder="Search for a symbol or company (e.g. AAPL, Tesla)..."
         />
         {isLoading && (
@@ -60,7 +60,7 @@ const SearchBar = () => {
       </div>
 
       {isOpen && inputValue.length >= 2 && (
-        <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+        <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
           {isError ? (
             <div className="p-4 text-fintech-red text-center">Failed to fetch results.</div>
           ) : searchResults?.length > 0 ? (

@@ -14,7 +14,7 @@ const Skeleton = React.forwardRef(({
   const variants = {
     default: 'bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200',
     text: 'h-4 rounded',
-    card: 'h-32 rounded-xl',
+    card: 'h-32 rounded-2xl',
     avatar: 'h-10 w-10 rounded-full',
     button: 'h-10 rounded-lg',
   }
@@ -46,7 +46,7 @@ Skeleton.displayName = 'Skeleton'
  */
 const CardSkeleton = () => {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
       <Skeleton className="h-6 w-40" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-3/4" />
@@ -72,7 +72,7 @@ const InputSkeleton = () => {
  */
 const FormSkeleton = ({ inputs = 3 }) => {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-8 space-y-6">
+    <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-6">
       {Array.from({ length: inputs }).map((_, idx) => (
         <InputSkeleton key={idx} />
       ))}

@@ -1,8 +1,10 @@
 import express from 'express';
-import { getStockInsight } from '../controllers/ai.controller.js';
+import { analyzeTradeSimulation, getProfessionalStockReport, getStockInsight } from '../controllers/ai.controller.js';
 
 const router = express.Router();
 
 router.get('/insight/:symbol', getStockInsight);
+router.get('/report/:symbol', getProfessionalStockReport);
+router.post('/simulate', analyzeTradeSimulation);
 
 export default router;

@@ -10,13 +10,15 @@ const StockDetail = lazy(() => import('./pages/StockDetail'))
 const Search = lazy(() => import('./pages/Search'))
 const Watchlist = lazy(() => import('./pages/Watchlist'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Simulator = lazy(() => import('./pages/Simulator'))
+const Compare = lazy(() => import('./pages/Compare'))
 
 function PageLoader() {
   return (
     <div className="flex items-center justify-center py-24">
       <div className="text-center">
-        <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-3 animate-pulse">
-          <div className="w-5 h-5 rounded bg-indigo-500/70" />
+        <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-3 animate-pulse">
+          <div className="w-5 h-5 rounded bg-emerald-500/70" />
         </div>
         <p className="text-sm font-medium text-slate-500">Loading workspace...</p>
       </div>
@@ -86,6 +88,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
+            <Route path="/compare" element={<Compare />} />
+            <Route path="/simulator" element={<Simulator />} />
 
             {/* Protected Routes using Clerk components */}
             <Route path="/watchlist" element={

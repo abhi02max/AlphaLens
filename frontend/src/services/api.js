@@ -22,6 +22,8 @@ export const stockApi = {
 
 export const aiApi = {
   getInsight: (symbol, mode = 'beginner') => api.get(`/ai/insight/${symbol}`, { params: { mode } }),
+  getProfessionalReport: (symbol) => api.get(`/ai/report/${encodeURIComponent(symbol)}`),
+  analyzeSimulation: (payload) => api.post('/ai/simulate', payload),
 }
 
 export const userApi = {

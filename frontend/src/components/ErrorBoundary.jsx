@@ -51,7 +51,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-10 max-w-md w-full text-center animate-fade-in-up">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-10 max-w-md w-full text-center animate-fade-in-up">
             {/* Error Icon */}
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-6 shadow-lg">
               <AlertCircle className="text-white" size={32} />
@@ -66,7 +66,7 @@ class ErrorBoundary extends React.Component {
             </p>
 
             {import.meta.env.DEV && this.state.error && (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/30 rounded-xl p-4 mb-6 max-h-32 overflow-auto text-left">
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/30 rounded-2xl p-4 mb-6 max-h-32 overflow-auto text-left">
                 <p className="text-xs font-mono text-red-800 dark:text-red-300 whitespace-pre-wrap">
                   {this.state.error.toString()}
                 </p>
@@ -76,14 +76,14 @@ class ErrorBoundary extends React.Component {
             <div className="flex gap-3">
               <button
                 onClick={this.handleReset}
-                className="flex-1 btn-primary py-3 rounded-xl"
+                className="flex-1 btn-primary py-3 rounded-2xl"
               >
                 <RefreshCw size={18} />
                 Try Again
               </button>
               <button
                 onClick={() => (window.location.href = '/')}
-                className="flex-1 btn-secondary py-3 rounded-xl"
+                className="flex-1 btn-secondary py-3 rounded-2xl"
               >
                 <Home size={18} />
                 Go Home

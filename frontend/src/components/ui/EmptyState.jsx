@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export const EmptyState = ({ icon: Icon, title, description, actionText, actionLink }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-xl border border-slate-200 border-dashed">
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white rounded-2xl border border-slate-200 border-dashed">
       <div className="bg-slate-50 p-4 rounded-full mb-4">
         <Icon size={32} className="text-slate-400" />
       </div>

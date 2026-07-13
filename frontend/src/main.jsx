@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import { ClerkProvider } from '@clerk/clerk-react'
 import App from './App'
 import { ThemeProvider } from './context/ThemeContext'
+import { AccessibilityProvider } from './context/AccessibilityContext'
 import './index.css'
 
 // Initialize Sentry only if DSN is provided
@@ -55,8 +56,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ThemeProvider>
-            <App />
-            <Toaster position="top-right" />
+            <AccessibilityProvider>
+              <App />
+              <Toaster position="top-right" />
+            </AccessibilityProvider>
           </ThemeProvider>
         </BrowserRouter>
       </QueryClientProvider>

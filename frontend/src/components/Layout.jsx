@@ -1,22 +1,41 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useUser, UserButton, SignInButton, SignUpButton } from '@clerk/clerk-react'
 import { useTheme } from '../context/ThemeContext'
-import { Menu, X, Search, Star, Sun, Moon, Home } from 'lucide-react'
+import { useAccessibility } from '../context/AccessibilityContext'
+import { Accessibility, BarChart3, GitCompare, Menu, Moon, Search, Star, Sun, WalletCards, X, Home } from 'lucide-react'
 
 export default function Layout() {
   const { isSignedIn } = useUser()
   const { theme, toggleTheme } = useTheme()
+  const { settings, toggleSetting, resetAccessibility } = useAccessibility()
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [headerSearch, setHeaderSearch] = useState('')
+  const [accessOpen, setAccessOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [commandInput, setCommandInput] = useState('')
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/search', label: 'Explore', icon: Search },
+    { path: '/compare', label: 'Compare', icon: GitCompare },
+    { path: '/simulator', label: 'Simulator', icon: WalletCards },
     ...(isSignedIn ? [{ path: '/watchlist', label: 'Watchlist', icon: Star }] : []),
   ]
+  const commands = useMemo(() => [
+    { label: 'Open Market Workspace', hint: 'Dashboard', path: '/', icon: Home },
+    { label: 'Search Global Markets', hint: 'Stocks, ETFs, crypto', path: '/search', icon: Search },
+    { label: 'Compare Securities', hint: 'Side-by-side research', path: '/compare', icon: GitCompare },
+    { label: 'Virtual Trading Simulator', hint: 'Practice with virtual cash', path: '/simulator', icon: WalletCards },
+    { label: 'Open AAPL Research', hint: 'Example stock', path: '/stock/AAPL', icon: BarChart3 },
+    { label: 'Open RELIANCE.NS Research', hint: 'NSE example', path: '/stock/RELIANCE.NS', icon: BarChart3 },
+  ], [])
+  const visibleCommands = commands.filter(command => (
+    command.label.toLowerCase().includes(commandInput.toLowerCase()) ||
+    command.hint.toLowerCase().includes(commandInput.toLowerCase())
+  ))
 
   const isActive = (path) => location.pathname === path
 
@@ -29,15 +48,40 @@ export default function Layout() {
     navigate(`/search?q=${encodeURIComponent(query)}`)
   }
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setCommandOpen(true)
+      }
+      if (event.key === 'Escape') {
+        setCommandOpen(false)
+        setAccessOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const runCommand = (path) => {
+    setCommandOpen(false)
+    setCommandInput('')
+    navigate(path)
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:bg-white focus:text-slate-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">
+        Skip to main content
+      </a>
       {/* Enterprise Navbar */}
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded bg-emerald-600 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">α</span>
               </div>
               <span className="text-lg font-bold font-sans text-slate-900 dark:text-white">
@@ -73,7 +117,7 @@ export default function Layout() {
                 <input
                   value={headerSearch}
                   onChange={(event) => setHeaderSearch(event.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none text-sm text-slate-900 dark:text-white placeholder-slate-400"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none text-sm text-slate-900 dark:text-white placeholder-slate-400"
                   placeholder="Search symbol or company"
                 />
               </div>
@@ -81,6 +125,23 @@ export default function Layout() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setCommandOpen(true)}
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                aria-label="Open command palette"
+              >
+                <Search size={14} />
+                <span>Ctrl K</span>
+              </button>
+
+              <button
+                onClick={() => setAccessOpen(true)}
+                className="p-2 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+                aria-label="Open accessibility controls"
+              >
+                <Accessibility size={18} />
+              </button>
+
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
@@ -102,7 +163,7 @@ export default function Layout() {
                     </button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <button className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors">
+                    <button className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors">
                       Get Started
                     </button>
                   </SignUpButton>
@@ -145,7 +206,7 @@ export default function Layout() {
               {!isSignedIn && (
                 <SignInButton mode="modal">
                   <button 
-                    className="w-full mt-4 px-4 py-2 text-center text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                    className="w-full mt-4 px-4 py-2 text-center text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Sign In
@@ -159,7 +220,7 @@ export default function Layout() {
                   <input
                     value={headerSearch}
                     onChange={(event) => setHeaderSearch(event.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="Search stocks"
                   />
                 </div>
@@ -170,15 +231,91 @@ export default function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main-content" className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
+
+      {commandOpen && (
+        <div className="fixed inset-0 z-[70] bg-slate-950/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Command palette">
+          <div className="max-w-xl mx-auto mt-20 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 rounded-2xl shadow-premium overflow-hidden">
+            <div className="p-4 border-b border-emerald-100 dark:border-slate-800">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  autoFocus
+                  value={commandInput}
+                  onChange={(event) => setCommandInput(event.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  placeholder="Type a command or destination..."
+                />
+              </div>
+            </div>
+            <div className="p-2 max-h-80 overflow-auto">
+              {visibleCommands.map(command => {
+                const Icon = command.icon
+                return (
+                  <button
+                    key={command.path}
+                    onClick={() => runCommand(command.path)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-emerald-50 dark:hover:bg-slate-800"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
+                      <Icon size={17} />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{command.label}</div>
+                      <div className="text-xs text-slate-500">{command.hint}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accessOpen && (
+        <div className="fixed inset-0 z-[70] bg-slate-950/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Accessibility controls">
+          <div className="max-w-md ml-auto bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 rounded-2xl shadow-premium p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-bold text-lg text-slate-950 dark:text-white">Accessibility</h2>
+                <p className="text-sm text-slate-500">Make AlphaLens easier to read and navigate.</p>
+              </div>
+              <button onClick={() => setAccessOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close accessibility controls">
+                <X size={18} />
+              </button>
+            </div>
+            {[
+              ['largeText', 'Larger text', 'Increase text size across the app.'],
+              ['highContrast', 'High contrast', 'Strengthen focus and visual contrast.'],
+              ['reduceMotion', 'Reduce motion', 'Minimize animations and transitions.'],
+              ['showChartTable', 'Chart data table', 'Show chart data in a screen-reader-friendly table.'],
+            ].map(([key, label, description]) => (
+              <button
+                key={key}
+                onClick={() => toggleSetting(key)}
+                className="w-full flex items-center justify-between gap-4 p-4 rounded-xl border border-emerald-100 dark:border-slate-800 mb-3 text-left hover:bg-emerald-50 dark:hover:bg-slate-800"
+              >
+                <span>
+                  <span className="block font-semibold text-slate-900 dark:text-white">{label}</span>
+                  <span className="block text-xs text-slate-500 mt-1">{description}</span>
+                </span>
+                <span className={`w-11 h-6 rounded-full p-1 transition-colors ${settings[key] ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                  <span className={`block w-4 h-4 rounded-full bg-white transition-transform ${settings[key] ? 'translate-x-5' : ''}`} />
+                </span>
+              </button>
+            ))}
+            <button onClick={resetAccessibility} className="btn-secondary w-full">Reset accessibility settings</button>
+          </div>
+        </div>
+      )}
 
       {/* Enterprise Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center">
               <span className="text-white font-bold text-xs">α</span>
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-white">

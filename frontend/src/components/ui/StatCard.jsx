@@ -19,7 +19,7 @@ const StatCard = React.forwardRef(({
     return (
       <div
         ref={ref}
-        className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm animate-pulse"
+        className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm animate-pulse"
       >
         <div className="h-4 w-24 bg-slate-200 rounded mb-4"></div>
         <div className="h-8 w-32 bg-slate-200 rounded"></div>
@@ -33,7 +33,7 @@ const StatCard = React.forwardRef(({
   return (
     <div
       ref={ref}
-      className={`bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${className}`}
+      className={`bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${className}`}
       {...props}
     >
       <div className="flex justify-between items-start mb-3">

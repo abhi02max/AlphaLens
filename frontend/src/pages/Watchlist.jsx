@@ -35,7 +35,7 @@ export default function Watchlist() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3 mb-1">
-            <Star size={26} className="text-indigo-500" />
+            <Star size={26} className="text-emerald-500" />
             My Watchlist
           </h1>
           <p className="text-slate-600 dark:text-slate-400">Track your favorite stocks in one place</p>
@@ -53,14 +53,14 @@ export default function Watchlist() {
             type="text"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-transparent text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-transparent text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
             placeholder="Add symbol (e.g. AAPL)"
           />
         </div>
         <button
           type="submit"
           disabled={addMutation.isPending || !symbol.trim()}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm"
+          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm"
         >
           <Plus size={18} />
           Add
@@ -70,8 +70,8 @@ export default function Watchlist() {
       {/* Loading */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4 animate-pulse">
-            <Star size={20} className="text-indigo-600 dark:text-indigo-400" />
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-4 animate-pulse">
+            <Star size={20} className="text-emerald-600 dark:text-emerald-400" />
           </div>
           <p className="text-sm font-medium text-slate-500">Loading watchlist...</p>
         </div>
@@ -79,14 +79,14 @@ export default function Watchlist() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50 rounded-xl p-8 text-center max-w-lg mx-auto">
+        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50 rounded-2xl p-8 text-center max-w-lg mx-auto">
           <p className="text-red-600 dark:text-red-400 font-semibold">Failed to load watchlist</p>
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && data?.length === 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-16 text-center shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-16 text-center shadow-sm">
           <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-6">
             <Star size={28} className="text-slate-400" />
           </div>
@@ -104,17 +104,17 @@ export default function Watchlist() {
         {data?.map((sym) => (
           <div
             key={sym}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md rounded-xl p-4 flex items-center justify-between group transition-all duration-200"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md rounded-2xl p-4 flex items-center justify-between group transition-all duration-200"
           >
             <button
               onClick={() => navigate(`/stock/${sym}`)}
               className="flex items-center gap-4 text-left flex-1"
             >
-              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center font-bold text-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center font-bold text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 transition-colors">
                 {sym.slice(0, 2)}
               </div>
               <div>
-                <span className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{sym}</span>
+                <span className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{sym}</span>
                 <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-1">
                   <TrendingUp size={12} />
                   View analytics
@@ -123,7 +123,7 @@ export default function Watchlist() {
             </button>
 
             <div className="flex items-center gap-3">
-              <ArrowRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all duration-200 hidden sm:block" />
+              <ArrowRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all duration-200 hidden sm:block" />
               <button
                 onClick={() => removeMutation.mutate(sym)}
                 disabled={removeMutation.isPending}

@@ -190,7 +190,7 @@ const HomePage = () => {
             ].map((feature, idx) => (
               <div key={idx} className="flex gap-4">
                 <div className="flex-shrink-0">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-blue-100">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-blue-100">
                     <feature.icon className="text-blue-600" size={24} />
                   </div>
                 </div>

@@ -20,7 +20,7 @@ const Card = React.forwardRef(({
     <div
       ref={ref}
       className={cn(
-        'rounded-xl transition-all duration-200',
+        'rounded-2xl transition-all duration-200',
         variants[variant],
         className
       )}

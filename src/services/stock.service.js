@@ -1,8 +1,6 @@
-import YahooFinance from 'yahoo-finance2';
 import redisClient from '../config/redis.js';
 import { NotFoundError, InternalServerError } from '../utils/appError.js';
-
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+import { collectProviderResults, runProviderChain } from './marketData.providers.js';
 
 const fallbackStocks = [
   {
@@ -179,6 +177,40 @@ const searchFallbackStocks = (query) => {
     }));
 };
 
+const normalizeSearchText = (value) => String(value || '').trim().toUpperCase();
+
+const rankSearchResult = (stock, query) => {
+  const normalizedQuery = normalizeSearchText(query);
+  const symbol = normalizeSearchText(stock.symbol);
+  const name = normalizeSearchText(stock.name);
+
+  if (symbol === normalizedQuery) return 0;
+  if (symbol.replace(/\./g, '') === normalizedQuery.replace(/\./g, '')) return 1;
+  if (symbol.startsWith(normalizedQuery)) return 2;
+  if (name.includes(normalizedQuery)) return 3;
+  return 4;
+};
+
+const prioritizeSearchResults = (stocks, query) => (
+  stocks
+    .map((stock, index) => ({ stock, index }))
+    .sort((a, b) => {
+      const rankDelta = rankSearchResult(a.stock, query) - rankSearchResult(b.stock, query);
+      if (rankDelta !== 0) return rankDelta;
+      return a.index - b.index;
+    })
+    .map(({ stock }) => stock)
+);
+
+const dedupeSearchResults = (stocks) => {
+  const seen = new Set();
+  return stocks.filter(stock => {
+    if (!stock?.symbol || seen.has(stock.symbol)) return false;
+    seen.add(stock.symbol);
+    return true;
+  });
+};
+
 const buildFallbackChart = (stock, range) => {
   const pointsByRange = {
     '1d': 48,
@@ -218,6 +250,216 @@ const buildFallbackChart = (stock, range) => {
   });
 };
 
+const buildEstimatedChartFromQuote = (quote, range) => (
+  buildFallbackChart(
+    {
+      ...quote,
+      price: quote.price || quote.previousClose || 100,
+      avgVolume: quote.avgVolume || quote.volume,
+      changePercent: quote.changePercent || 0,
+    },
+    range
+  ).map(point => ({
+    ...point,
+    symbol: quote.symbol,
+    provider: 'AlphaLens Estimated Chart',
+    freshness: 'estimated-from-live-quote',
+  }))
+);
+
+const hasUsefulValue = (value) => (
+  value !== undefined &&
+  value !== null &&
+  value !== '' &&
+  value !== 'N/A' &&
+  value !== 'None' &&
+  !(typeof value === 'number' && Number.isNaN(value))
+);
+
+const mergeQuoteResults = (quotes) => {
+  const merged = {};
+  const fieldSources = {};
+  const providers = [];
+
+  for (const quote of quotes) {
+    if (!quote) continue;
+    if (quote.provider && !providers.includes(quote.provider)) {
+      providers.push(quote.provider);
+    }
+
+    for (const [key, value] of Object.entries(quote)) {
+      if (!hasUsefulValue(value)) continue;
+
+      const currentValue = merged[key];
+      const isRealtimeField = ['price', 'change', 'changePercent', 'open', 'previousClose', 'dayHigh', 'dayLow', 'volume'].includes(key);
+
+      if (!hasUsefulValue(currentValue) || (!isRealtimeField && key !== 'symbol' && key !== 'provider' && key !== 'freshness')) {
+        merged[key] = value;
+        fieldSources[key] = quote.provider;
+      }
+    }
+  }
+
+  if (providers.length > 0) {
+    merged.provider = providers[0];
+    merged.providersUsed = providers;
+    merged.fieldSources = fieldSources;
+    merged.dataCompleteness = calculateDataCompleteness(merged);
+  }
+
+  return merged;
+};
+
+const calculateDataCompleteness = (quote) => {
+  const importantFields = [
+    'price',
+    'changePercent',
+    'marketCap',
+    'peRatio',
+    'eps',
+    'volume',
+    'avgVolume',
+    'open',
+    'previousClose',
+    'dayHigh',
+    'dayLow',
+    'fiftyTwoWeekHigh',
+    'fiftyTwoWeekLow',
+    'beta',
+  ];
+  const filled = importantFields.filter(field => hasUsefulValue(quote[field])).length;
+  return {
+    filled,
+    total: importantFields.length,
+    percent: Math.round((filled / importantFields.length) * 100),
+  };
+};
+
+const isUsableQuoteResult = (result) => (
+  result?.symbol &&
+  (
+    hasUsefulValue(result.price) ||
+    hasUsefulValue(result.marketCap) ||
+    hasUsefulValue(result.peRatio) ||
+    hasUsefulValue(result.eps) ||
+    hasUsefulValue(result.beta) ||
+    hasUsefulValue(result.fiftyTwoWeekHigh) ||
+    hasUsefulValue(result.fiftyTwoWeekLow)
+  )
+);
+
+const hasCoreFundamentals = (quote) => (
+  hasUsefulValue(quote?.marketCap) &&
+  hasUsefulValue(quote?.peRatio) &&
+  hasUsefulValue(quote?.eps)
+);
+
+const quoteScore = (quote) => {
+  if (!quote?.symbol || !hasUsefulValue(quote.price)) return -1;
+  const completeness = quote.dataCompleteness?.filled || 0;
+  const fundamentalsBonus = hasCoreFundamentals(quote) ? 10 : 0;
+  return completeness + fundamentalsBonus;
+};
+
+const fetchMergedQuote = async (symbol) => {
+  const { results } = await collectProviderResults('quote', [symbol], isUsableQuoteResult);
+  return mergeQuoteResults(results);
+};
+
+const getLikelySymbolCandidates = async (symbol) => {
+  const normalizedSymbol = normalizeSearchText(symbol);
+  const directCandidates = normalizedSymbol.includes('.')
+    ? []
+    : [
+        `${normalizedSymbol}.NS`,
+        `${normalizedSymbol}.BO`,
+        `${normalizedSymbol}.L`,
+        `${normalizedSymbol}.TO`,
+        `${normalizedSymbol}.AX`,
+        `${normalizedSymbol}.T`,
+        `${normalizedSymbol}.HK`,
+      ];
+
+  try {
+    const { results } = await collectProviderResults(
+      'search',
+      [symbol],
+      result => Array.isArray(result) && result.length > 0
+    );
+    const searchedCandidates = prioritizeSearchResults(dedupeSearchResults(results.flat()), symbol)
+      .map(stock => stock.symbol)
+      .filter(candidate => normalizeSearchText(candidate) !== normalizedSymbol);
+
+    return [...new Set([...searchedCandidates, ...directCandidates])].slice(0, 8);
+  } catch (error) {
+    console.warn(`Symbol candidate search failed for "${symbol}":`, error.message);
+    return directCandidates;
+  }
+};
+
+const findBestQuote = async (symbol) => {
+  const primaryQuote = await fetchMergedQuote(symbol);
+  let bestQuote = primaryQuote;
+
+  if (quoteScore(primaryQuote) >= 20) {
+    return bestQuote;
+  }
+
+  const candidates = await getLikelySymbolCandidates(symbol);
+
+  for (const candidate of candidates) {
+    try {
+      const candidateQuote = await fetchMergedQuote(candidate);
+      if (quoteScore(candidateQuote) > quoteScore(bestQuote)) {
+        bestQuote = candidateQuote;
+      }
+
+      if (quoteScore(bestQuote) >= 20) {
+        break;
+      }
+    } catch (error) {
+      console.warn(`Quote candidate "${candidate}" failed for "${symbol}":`, error.message);
+    }
+  }
+
+  return bestQuote;
+};
+
+const fetchChartData = async (symbol, range) => (
+  runProviderChain(
+    'chart',
+    [symbol, range],
+    result => Array.isArray(result) && result.length > 0
+  )
+);
+
+const findBestChart = async (symbol, range) => {
+  try {
+    return await fetchChartData(symbol, range);
+  } catch (primaryError) {
+    const candidates = await getLikelySymbolCandidates(symbol);
+
+    for (const candidate of candidates) {
+      try {
+        const chart = await fetchChartData(candidate, range);
+        if (chart.length > 0) {
+          return chart.map(point => ({ ...point, resolvedSymbol: candidate }));
+        }
+      } catch (error) {
+        console.warn(`Chart candidate "${candidate}" failed for "${symbol}":`, error.message);
+      }
+    }
+
+    const quote = await findBestQuote(symbol);
+    if (quote?.symbol && quote?.price != null) {
+      console.warn(`Using estimated chart for "${symbol}" from live quote after provider chart failures:`, primaryError.message);
+      return buildEstimatedChartFromQuote(quote, range);
+    }
+
+    throw primaryError;
+  }
+};
+
 /**
  * Helper to fetch data with cache
  */
@@ -251,8 +493,7 @@ const fetchWithCache = async (cacheKey, fetchFunction, ttlSeconds = 3600) => {
 
     return freshData;
   } catch (error) {
-    // If Yahoo Finance API fails, provide more helpful error
-    console.error('Yahoo Finance API Error:', error.message);
+    console.error('Market Data Provider Error:', error.message);
     if (error.message.includes('404') || error.message.includes('Not Found')) {
       throw new NotFoundError('Stock data not found');
     }
@@ -270,41 +511,29 @@ export const searchStocks = async (query) => {
     throw new NotFoundError('Search query cannot be empty');
   }
 
-  const cacheKey = `search:${query.toLowerCase().trim()}`;
+  const cacheKey = `search:v3:${query.toLowerCase().trim()}`;
   
   // Wrap the API call in our caching helper
   return fetchWithCache(cacheKey, async () => {
-    const fallbackResults = searchFallbackStocks(query);
-    let results;
-
     try {
-      results = await yahooFinance.search(query);
+      const { results } = await collectProviderResults('search', [query], result => Array.isArray(result) && result.length > 0);
+      const providerResults = results.flat();
+
+      if (providerResults.length === 0) {
+        throw new NotFoundError('No provider returned search results');
+      }
+
+      const fallbackResults = searchFallbackStocks(query);
+      const uniqueProviderResults = dedupeSearchResults(providerResults);
+      const seen = new Set(uniqueProviderResults.map(stock => stock.symbol));
+      return prioritizeSearchResults([
+        ...uniqueProviderResults,
+        ...fallbackResults.filter(stock => !seen.has(stock.symbol)),
+      ], query);
     } catch (error) {
       console.warn(`Using fallback search results for "${query}":`, error.message);
-      return fallbackResults;
+      return searchFallbackStocks(query);
     }
-    
-    // Clean and format the data before sending it to the controller
-    if (!results.quotes || results.quotes.length === 0) {
-      return fallbackResults;
-    }
-    
-    const providerResults = results.quotes
-      .filter(quote => quote.symbol && (quote.quoteType || quote.shortname || quote.longname))
-      .map(quote => ({
-        symbol: quote.symbol,
-        name: quote.shortname || quote.longname || quote.symbol,
-        exchange: quote.exchDisp,
-        type: quote.quoteType,
-        sector: quote.sector || 'N/A',
-        industry: quote.industry || 'N/A'
-      }));
-
-    const seen = new Set(providerResults.map(stock => stock.symbol));
-    return [
-      ...providerResults,
-      ...fallbackResults.filter(stock => !seen.has(stock.symbol)),
-    ];
   }, 3600); // 1 hour TTL for search results
 };
 
@@ -322,50 +551,30 @@ export const getStockDetails = async (symbol) => {
   
   // Wrap the API call in our caching helper
   return fetchWithCache(cacheKey, async () => {
-    let result;
-
     try {
-      result = await yahooFinance.quote(symbol);
+      const mergedQuote = await findBestQuote(symbol);
+
+      if (mergedQuote?.symbol && mergedQuote?.price != null) {
+        return {
+          ...mergedQuote,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+
+      throw new NotFoundError('No provider returned complete quote data');
     } catch (error) {
       const fallbackQuote = getFallbackQuote(symbol);
       if (fallbackQuote) {
         console.warn(`Using fallback quote for "${symbol}":`, error.message);
-        return fallbackQuote;
+        return {
+          ...fallbackQuote,
+          provider: 'AlphaLens Offline Demo',
+          freshness: 'fallback',
+          lastUpdated: new Date().toISOString(),
+        };
       }
       throw error;
     }
-    
-    // Handle case where Yahoo Finance returns no data for the symbol
-    if (!result || !result.symbol) {
-      const fallbackQuote = getFallbackQuote(symbol);
-      if (fallbackQuote) return fallbackQuote;
-      throw new NotFoundError('Stock not found. Please check the symbol.');
-    }
-    
-    // Format into a clean, easy-to-consume JSON structure
-    return {
-      symbol: result.symbol,
-      name: result.shortName || result.longName,
-      exchange: result.fullExchangeName || result.exchange,
-      quoteType: result.quoteType,
-      price: result.regularMarketPrice,
-      currency: result.currency,
-      marketCap: result.marketCap,
-      peRatio: result.trailingPE,
-      eps: result.epsTrailingTwelveMonths,
-      volume: result.regularMarketVolume,
-      avgVolume: result.averageDailyVolume3Month,
-      change: result.regularMarketChange,
-      changePercent: result.regularMarketChangePercent,
-      open: result.regularMarketOpen,
-      previousClose: result.regularMarketPreviousClose,
-      dayHigh: result.regularMarketDayHigh,
-      dayLow: result.regularMarketDayLow,
-      fiftyTwoWeekHigh: result.fiftyTwoWeekHigh,
-      fiftyTwoWeekLow: result.fiftyTwoWeekLow,
-      dividendYield: result.trailingAnnualDividendYield,
-      beta: result.beta,
-    };
   }, 2); // 2 seconds TTL for stock quotes for live feel
 };
 
@@ -387,49 +596,18 @@ export const getStockChart = async (symbol, range = '1mo') => {
   const cacheKey = `chart:${symbol.toUpperCase()}:${range}`;
   
   return fetchWithCache(cacheKey, async () => {
-    const period1 = new Date();
-    let interval = '1d';
-    
-    switch (range) {
-      case '1d': period1.setDate(period1.getDate() - 1); interval = '5m'; break;
-      case '5d': period1.setDate(period1.getDate() - 5); interval = '15m'; break;
-      case '1mo': period1.setMonth(period1.getMonth() - 1); interval = '1d'; break;
-      case '6mo': period1.setMonth(period1.getMonth() - 6); interval = '1wk'; break;
-      case '1y': period1.setFullYear(period1.getFullYear() - 1); interval = '1mo'; break;
-      default: period1.setMonth(period1.getMonth() - 1); interval = '1d'; break;
-    }
-    
-    const chartOptions = {
-      period1,
-      interval,
-    };
-    
-    let result;
-
     try {
-      result = await yahooFinance.chart(symbol, chartOptions);
+      return await findBestChart(symbol, range);
     } catch (error) {
       const fallbackQuote = getFallbackQuote(symbol);
       if (fallbackQuote) {
         console.warn(`Using fallback chart for "${symbol}":`, error.message);
-        return buildFallbackChart(fallbackQuote, range);
+        return buildFallbackChart(fallbackQuote, range).map(point => ({
+          ...point,
+          provider: 'AlphaLens Offline Demo',
+        }));
       }
       throw error;
     }
-    
-    if (!result.quotes || result.quotes.length === 0) {
-      const fallbackQuote = getFallbackQuote(symbol);
-      if (fallbackQuote) return buildFallbackChart(fallbackQuote, range);
-      throw new NotFoundError('No chart data available for this symbol');
-    }
-    
-    return result.quotes.map(q => ({
-      date: q.date,
-      open: q.open,
-      high: q.high,
-      low: q.low,
-      close: q.close,
-      volume: q.volume
-    }));
   }, 10); // 10 seconds TTL
 };

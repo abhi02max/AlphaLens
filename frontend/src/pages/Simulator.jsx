@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
+import { useUser } from '@clerk/clerk-react'
 import toast from 'react-hot-toast'
 import {
   ArrowDownRight,
@@ -26,9 +27,9 @@ const createDefaultState = () => ({
   trades: [],
 })
 
-const loadSimulatorState = () => {
+const loadSimulatorState = (storageKey) => {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
+    const stored = window.localStorage.getItem(storageKey)
     if (!stored) return createDefaultState()
     const parsed = JSON.parse(stored)
     return {
@@ -42,9 +43,12 @@ const loadSimulatorState = () => {
 }
 
 export default function Simulator() {
+  const { user } = useUser()
   const [searchParams] = useSearchParams()
   const initialSymbol = searchParams.get('symbol') || ''
-  const [state, setState] = useState(loadSimulatorState)
+  const storageKey = user?.id ? `${STORAGE_KEY}:${user.id}` : null
+  const [state, setState] = useState(createDefaultState)
+  const [hydratedStorageKey, setHydratedStorageKey] = useState(null)
   const [query, setQuery] = useState(initialSymbol)
   const [selectedSymbol, setSelectedSymbol] = useState(initialSymbol.toUpperCase())
   const [quantity, setQuantity] = useState('1')
@@ -52,8 +56,16 @@ export default function Simulator() {
   const [analysisResult, setAnalysisResult] = useState(null)
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  }, [state])
+    if (!storageKey) return
+    setState(loadSimulatorState(storageKey))
+    setHydratedStorageKey(storageKey)
+  }, [storageKey])
+
+  useEffect(() => {
+    if (storageKey && storageKey === hydratedStorageKey) {
+      window.localStorage.setItem(storageKey, JSON.stringify(state))
+    }
+  }, [state, storageKey, hydratedStorageKey])
 
   const { data: suggestions = [], isFetching: searching } = useQuery({
     queryKey: ['simulator-search', query],
@@ -62,11 +74,14 @@ export default function Simulator() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: selectedQuote, isFetching: loadingQuote } = useQuery({
+  const { data: selectedQuote, isLoading: loadingQuote, isFetching: refreshingQuote, dataUpdatedAt: selectedQuoteUpdatedAt } = useQuery({
     queryKey: ['simulator-quote', selectedSymbol],
     queryFn: () => stockApi.getDetails(selectedSymbol).then(r => r.data.data),
     enabled: !!selectedSymbol,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   })
 
   const analysisMutation = useMutation({
@@ -85,8 +100,10 @@ export default function Simulator() {
     queries: holdingSymbols.map(symbol => ({
       queryKey: ['simulator-holding-quote', symbol],
       queryFn: () => stockApi.getDetails(symbol).then(r => r.data.data),
-      staleTime: 30 * 1000,
-      refetchInterval: 60 * 1000,
+      staleTime: 0,
+      refetchInterval: 5000,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
     })),
   })
 
@@ -109,7 +126,8 @@ export default function Simulator() {
     return {
       symbol,
       name: quote?.name || holding.name || symbol,
-      currency: quote?.currency || holding.currency || 'V$',
+      currency: 'V$',
+      quoteCurrency: quote?.currency || holding.quoteCurrency || 'USD',
       shares: holding.shares,
       avgCost: holding.avgCost,
       currentPrice,
@@ -125,6 +143,11 @@ export default function Simulator() {
   const unrealizedPnl = currentValue - investedValue
   const totalEquity = state.cash + currentValue
   const totalReturnPercent = STARTING_CASH > 0 ? ((totalEquity - STARTING_CASH) / STARTING_CASH) * 100 : 0
+  const refreshingPortfolio = holdingQuoteQueries.some(query => query.isFetching)
+  const latestMarketUpdate = Math.max(
+    selectedQuoteUpdatedAt || 0,
+    ...holdingQuoteQueries.map(query => query.dataUpdatedAt || 0),
+  )
 
   const formatMoney = (value, currency = 'V$') => {
     if (value == null || Number.isNaN(value)) return 'N/A'
@@ -176,7 +199,8 @@ export default function Simulator() {
         holdings[symbol] = {
           symbol,
           name: selectedQuote.name || symbol,
-          currency: selectedQuote.currency || 'V$',
+          currency: 'V$',
+          quoteCurrency: selectedQuote.currency || 'USD',
           shares: newShares,
           avgCost: (oldValue + orderValue) / newShares,
         }
@@ -206,7 +230,8 @@ export default function Simulator() {
             shares,
             price,
             value: orderValue,
-            currency: selectedQuote.currency || 'V$',
+            currency: 'V$',
+            quoteCurrency: selectedQuote.currency || 'USD',
             createdAt: new Date().toISOString(),
           },
           ...prev.trades,
@@ -270,15 +295,15 @@ export default function Simulator() {
 
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Virtual Cash</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Virtual Cash (V$)</div>
           <div className="text-2xl font-bold text-slate-950 dark:text-white">{formatMoney(state.cash)}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Holdings Value</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Holdings Value (V$)</div>
           <div className="text-2xl font-bold text-slate-950 dark:text-white">{formatMoney(currentValue)}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Total Equity</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Total Equity (V$)</div>
           <div className="text-2xl font-bold text-slate-950 dark:text-white">{formatMoney(totalEquity)}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
@@ -375,12 +400,13 @@ export default function Simulator() {
                 <span className="text-slate-500">Last price</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
                   {loadingQuote ? 'Loading...' : selectedQuote ? formatMoney(selectedQuote.price, selectedQuote.currency) : 'N/A'}
+                  {refreshingQuote && selectedQuote && <span className="ml-2 text-[10px] text-emerald-600 dark:text-emerald-400">updating</span>}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Est. order value</span>
+                <span className="text-slate-500">Est. order value (V$)</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
-                  {selectedQuote ? formatMoney(Number(quantity || 0) * selectedQuote.price, selectedQuote.currency) : 'N/A'}
+                  {selectedQuote ? formatMoney(Number(quantity || 0) * selectedQuote.price, 'V$') : 'N/A'}
                 </span>
               </div>
             </div>
@@ -411,8 +437,15 @@ export default function Simulator() {
               <Briefcase size={18} className="text-emerald-500" />
               Portfolio
             </h2>
-            <div className={`text-sm font-semibold ${unrealizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              Unrealized P/L: {unrealizedPnl >= 0 ? '+' : ''}{formatMoney(unrealizedPnl)}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className={`text-sm font-semibold ${unrealizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                Unrealized P/L: {unrealizedPnl >= 0 ? '+' : ''}{formatMoney(unrealizedPnl)}
+              </div>
+              <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className={`w-1.5 h-1.5 rounded-full bg-emerald-500 ${refreshingPortfolio ? 'animate-ping' : ''}`} />
+                Live pricing
+                {latestMarketUpdate > 0 && ` · ${new Date(latestMarketUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+              </div>
             </div>
           </div>
 
@@ -445,11 +478,11 @@ export default function Simulator() {
                         <div className="text-xs text-slate-500 truncate max-w-56">{row.name}</div>
                       </td>
                       <td className="py-4 pr-4 text-right font-mono">{row.shares.toFixed(2)}</td>
-                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.avgCost, row.currency)}</td>
-                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.currentPrice, row.currency)}</td>
-                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.currentValue, row.currency)}</td>
+                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.avgCost, 'V$')}</td>
+                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.currentPrice, row.quoteCurrency)}</td>
+                      <td className="py-4 pr-4 text-right font-mono">{formatMoney(row.currentValue, 'V$')}</td>
                       <td className={`py-4 text-right font-mono font-semibold ${row.pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {row.pnl >= 0 ? '+' : ''}{formatMoney(row.pnl, row.currency)}
+                        {row.pnl >= 0 ? '+' : ''}{formatMoney(row.pnl, 'V$')}
                         <div className="text-xs">{row.pnl >= 0 ? '+' : ''}{row.pnlPercent.toFixed(2)}%</div>
                       </td>
                     </tr>

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useAuth, SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react'
+import { useAuth, SignIn, SignUp } from '@clerk/clerk-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import api from './services/apiClient'
@@ -24,6 +24,14 @@ function PageLoader() {
       </div>
     </div>
   )
+}
+
+function ProtectedLayout() {
+  const { isLoaded, isSignedIn } = useAuth()
+
+  if (!isLoaded) return <PageLoader />
+  if (!isSignedIn) return <Navigate to="/login" replace />
+  return <Layout />
 }
 
 // Global interceptor hook to inject Clerk token into Axios
@@ -84,27 +92,15 @@ export default function App() {
             </div>
           } />
 
-          <Route element={<Layout />}>
+          <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/simulator" element={<Simulator />} />
 
-            {/* Protected Routes using Clerk components */}
-            <Route path="/watchlist" element={
-              <>
-                <SignedIn><Watchlist /></SignedIn>
-                <SignedOut><Navigate to="/login" replace /></SignedOut>
-              </>
-            } />
-
-            <Route path="/settings" element={
-              <>
-                <SignedIn><Settings /></SignedIn>
-                <SignedOut><Navigate to="/login" replace /></SignedOut>
-              </>
-            } />
+            <Route path="/watchlist" element={<Watchlist />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

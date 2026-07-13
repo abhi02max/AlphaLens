@@ -58,7 +58,7 @@ export default function StockDetail() {
     refetchOnWindowFocus: true,
   })
 
-  const { data: professionalReport, isLoading: loadingReport, isFetching: fetchingReport, isError: reportError } = useQuery({
+  const { data: professionalReport } = useQuery({
     queryKey: ['professional-report', symbol],
     queryFn: () => aiApi.getProfessionalReport(symbol).then(r => r.data.data),
     enabled: !!symbol,
@@ -170,13 +170,17 @@ export default function StockDetail() {
     momentumLabel,
   })
   const marketReport = professionalReport?.report || localReport
+  const newsAnalysis = (marketReport.newsCatalystSummary || []).filter(item =>
+    item?.headline && !/no verified|enrichment pending|market item unavailable/i.test(item.headline)
+  )
   const financialNews = professionalReport?.news?.length
-    ? professionalReport.news.map(item => ({
+    ? professionalReport.news.map((item, index) => ({
+        ...item,
         headline: item.title,
-        whyItMatters: `${item.publisher || 'Market source'} reported a verified catalyst linked to ${details.symbol}.`,
-        likelyImpact: 'Track follow-through in price, volume, and sector-relative performance.',
+        whyItMatters: newsAnalysis[index]?.whyItMatters || 'Review the headline alongside price, volume, and sector-relative follow-through.',
+        likelyImpact: newsAnalysis[index]?.likelyImpact || 'Monitor sentiment, valuation sensitivity, and continuation risk.',
       }))
-    : marketReport.newsCatalystSummary
+    : newsAnalysis
 
   const lastUpdatedText = details.lastUpdated
     ? new Date(details.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -437,30 +441,29 @@ export default function StockDetail() {
           <div className="max-w-2xl">
             <h2 className="font-semibold text-lg text-slate-900 dark:text-white flex items-center gap-2">
               <Brain size={18} className="text-emerald-500" />
-              Institutional Intelligence Stack
+              Research Toolkit
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              AlphaLens is designed as an institutional-grade market intelligence simulator, combining real-time market data,
-              financial news, filings context, AI reasoning, and risk analytics before a user tests a virtual position.
+              Move from market evidence to a simulated decision without leaving the instrument workspace.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
-            <IntelligenceFeature
-              title="NLP Causal Engine"
-              body="Correlates SEC filings, company-specific financial news, and sector headlines to asset price movement using LLM reasoning."
-            />
-            <IntelligenceFeature
-              title="RAG Financial Reasoning"
-              body="Uses vector-embedding retrieval patterns for context-aware analysis across filings, news catalysts, metrics, and historical setup."
-            />
-            <IntelligenceFeature
-              title="Strategy-to-Backtest Layer"
-              body="Translates plain-English trade ideas into backtesting logic with VaR, Sharpe Ratio, and slippage-aware assumptions."
-            />
-            <IntelligenceFeature
-              title="Real-Time Risk Streaming"
-              body="Architecture supports Redis Pub/Sub style risk updates for live simulated positions, alerts, and portfolio exposure monitoring."
-            />
+            <ToolkitLink href="#financial-news" title="Catalyst feed" body={`${financialNews.length || 0} connected market headlines`} />
+            <ToolkitLink href="#ai-analysis" title="Contextual reasoning" body={`${marketReport.aiRecommendation?.confidence || 'Low'}-confidence model view`} />
+            <Link to={`/simulator?symbol=${encodeURIComponent(details.symbol)}`} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 hover:border-emerald-400 transition-colors group">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Strategy lab</div>
+                <ArrowUpRight size={15} className="text-slate-400 group-hover:text-emerald-500" />
+              </div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Test size, entry, exit, and simulated P/L</p>
+            </Link>
+            <Link to={`/simulator?symbol=${encodeURIComponent(details.symbol)}`} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 hover:border-emerald-400 transition-colors group">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Risk monitor</div>
+                <ArrowUpRight size={15} className="text-slate-400 group-hover:text-emerald-500" />
+              </div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Review exposure, downside, and exit triggers</p>
+            </Link>
           </div>
         </div>
       </div>
@@ -471,10 +474,10 @@ export default function StockDetail() {
             <div>
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles size={18} className="text-emerald-600 dark:text-emerald-400" />
-                Professional AI Stock Report
+                Market Intelligence
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Trader-grade dashboard generated from live metrics, market context, and financial news.
+                Trader-grade view across live metrics, price action, valuation, and connected financial news.
               </p>
             </div>
             <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
@@ -485,14 +488,6 @@ export default function StockDetail() {
               AI Recommendation: {marketReport.aiRecommendation?.view}
             </div>
           </div>
-
-          {(loadingReport || fetchingReport || reportError) && (
-            <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-              {reportError
-                ? 'Live AI enrichment is unavailable right now. Showing deterministic market context from the latest quote and chart data.'
-                : 'AI market context is still enriching in the background. The dashboard below is already available from live market data.'}
-            </div>
-          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
@@ -548,13 +543,13 @@ export default function StockDetail() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ReportPanel title="Technical / Momentum Read" items={[
+          <ReportPanel id="technical-read" title="Technical / Momentum Read" items={[
               marketReport.technicalMomentumRead?.trend,
               marketReport.technicalMomentumRead?.momentum,
               marketReport.technicalMomentumRead?.volatility,
               ...(marketReport.technicalMomentumRead?.keyLevels || []),
             ]} />
-            <ReportPanel title="Fundamental Read" items={[
+          <ReportPanel id="fundamental-read" title="Fundamental Read" items={[
               marketReport.fundamentalRead?.valuation,
               marketReport.fundamentalRead?.quality,
               marketReport.fundamentalRead?.earningsPower,
@@ -562,7 +557,7 @@ export default function StockDetail() {
             ]} />
           </div>
 
-          <ReportPanel title="AI Analysis" items={[
+          <ReportPanel id="ai-analysis" title="AI Analysis" items={[
             marketReport.aiAnalysis?.pastPerformance,
             marketReport.aiAnalysis?.currentMarketConditions,
             marketReport.aiAnalysis?.fundamentalStrength,
@@ -572,13 +567,29 @@ export default function StockDetail() {
             marketReport.aiAnalysis?.forwardOutlook,
           ]} />
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <h3 className="font-semibold text-slate-950 dark:text-white mb-4">Financial News</h3>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-4">News Catalyst Summary</p>
+          <div id="financial-news" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-semibold text-slate-950 dark:text-white">Financial News</h3>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-1">News catalyst summary</p>
+              </div>
+              <span className="text-xs font-semibold text-slate-500">{financialNews.length} headline{financialNews.length === 1 ? '' : 's'}</span>
+            </div>
             <div className="space-y-4">
-              {financialNews?.map((item, index) => (
+              {financialNews.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5 text-sm text-slate-500">
+                  No market-moving company, sector, or macro headlines are connected for this symbol yet.
+                </div>
+              )}
+              {financialNews.map((item, index) => (
                 <div key={`${item.headline}-${index}`} className="border-t first:border-t-0 border-slate-100 dark:border-slate-800 pt-4 first:pt-0">
-                  <div className="font-semibold text-sm text-slate-900 dark:text-white">{item.headline}</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="font-semibold text-sm text-slate-900 dark:text-white">{item.headline}</div>
+                    {item.link && <a href={item.link} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">Open</a>}
+                  </div>
+                  {(item.publisher || item.publishedAt) && (
+                    <div className="text-xs text-slate-500 mt-1">{item.publisher || 'Market source'}{item.publishedAt ? ` · ${formatNewsDate(item.publishedAt)}` : ''}</div>
+                  )}
                   <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{item.whyItMatters}</p>
                   <p className="text-xs font-semibold text-slate-500 mt-2">Likely impact: {item.likelyImpact}</p>
                 </div>
@@ -587,9 +598,9 @@ export default function StockDetail() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ReportPanel title="Invalidation Risks" items={marketReport.aiRecommendation?.invalidationRisks} />
-            <ReportPanel title="Watchlist Triggers" items={marketReport.watchlistTriggers} />
-            <ReportPanel title="Risk Factors" items={marketReport.riskFactors} />
+            <ReportPanel id="invalidation-risks" title="Invalidation Risks" items={marketReport.aiRecommendation?.invalidationRisks} />
+            <ReportPanel id="watchlist-triggers" title="Watchlist Triggers" items={marketReport.watchlistTriggers} />
+            <ReportPanel id="risk-factors" title="Risk Factors" items={marketReport.riskFactors} />
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed">
@@ -600,11 +611,11 @@ export default function StockDetail() {
   )
 }
 
-function ReportPanel({ title, items = [] }) {
+function ReportPanel({ id, title, items = [] }) {
   const cleanItems = items.filter(Boolean)
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+    <div id={id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 scroll-mt-6">
       <h3 className="font-semibold text-slate-950 dark:text-white mb-4">{title}</h3>
       <div className="space-y-3">
         {cleanItems.map((item, index) => (
@@ -617,13 +628,21 @@ function ReportPanel({ title, items = [] }) {
   )
 }
 
-function IntelligenceFeature({ title, body }) {
+function ToolkitLink({ href, title, body }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">{title}</div>
+    <a href={href} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 hover:border-emerald-400 transition-colors group">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">{title}</div>
+        <ArrowUpRight size={15} className="text-slate-400 group-hover:text-emerald-500" />
+      </div>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{body}</p>
-    </div>
+    </a>
   )
+}
+
+function formatNewsDate(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'recent' : date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function buildLocalMarketReport(details, { formatCurrency, formatCompact, valuationLabel, momentumLabel }) {
@@ -637,7 +656,7 @@ function buildLocalMarketReport(details, { formatCurrency, formatCompact, valuat
 
   return {
     stockSummary: `${details.symbol} is trading at ${formatCurrency(details.price)} with session performance of ${changeText}. Market cap is ${formatCompact(details.marketCap)}, P/E is ${details.peRatio?.toFixed(2) || 'not reported'}, EPS is ${details.eps?.toFixed(2) || 'not reported'}, and ${volumeRead}. The 52-week range is ${range52}; tactical references are support near ${support} and resistance near ${resistance}. Institutional read: ${valuationLabel.toLowerCase()} with ${momentumLabel.toLowerCase()} momentum.`,
-    executiveSnapshot: `${details.symbol} shows ${momentumLabel.toLowerCase()} price action with valuation classified as ${valuationLabel.toLowerCase()}. The setup is based on latest quote, volume, valuation, 52-week range, and mapped intraday levels while AI/news enrichment completes.`,
+    executiveSnapshot: `${details.symbol} shows ${momentumLabel.toLowerCase()} price action with valuation classified as ${valuationLabel.toLowerCase()}. The current setup is anchored to the latest quote, volume, valuation, 52-week range, and mapped intraday levels.`,
     keyMetrics: [
       { label: 'Price', value: formatCurrency(details.price), read: `${changeText} session move from the latest live quote.` },
       { label: 'Market Cap', value: formatCompact(details.marketCap), read: 'Liquidity and scale context for position sizing.' },
@@ -659,19 +678,15 @@ function buildLocalMarketReport(details, { formatCurrency, formatCompact, valuat
       dataGaps: ['Revenue trend', 'margin trend', 'SEC filing extraction', 'earnings revisions'],
     },
     aiAnalysis: {
-      pastPerformance: `The current view uses live quote movement and mapped range behavior; historical enrichment continues through the AI report endpoint.`,
+      pastPerformance: `The current view uses live quote movement and mapped range behavior across the selected instrument.`,
       currentMarketConditions: `${details.symbol} is showing ${momentumLabel.toLowerCase()} with ${volumeRead}.`,
       fundamentalStrength: `Fundamental read is anchored on market cap, P/E, EPS, dividend yield, and beta where reported.`,
       valuationRisk: details.peRatio > 40 ? 'Premium valuation increases multiple-compression risk if growth expectations weaken.' : 'Valuation risk is not the dominant signal on currently reported metrics.',
       momentumVolatility: `Monitor the ${support} to ${resistance} intraday band for continuation or rejection.`,
-      sectorSentiment: details.sector ? `${details.sector} sentiment should be compared with sector peers and macro risk appetite.` : 'Sector sentiment is pending provider coverage.',
+      sectorSentiment: details.sector ? `${details.sector} sentiment should be compared with sector peers and macro risk appetite.` : 'Sector context is not reported by the connected quote feed.',
       forwardOutlook: `Current setup favors ${recommendation === 'HOLD' ? 'continued monitoring in simulation' : 'simulated risk reduction'} until verified catalysts and volume confirmation improve confidence.`,
     },
-    newsCatalystSummary: [{
-      headline: 'Financial news enrichment pending verified catalyst feed',
-      whyItMatters: 'AlphaLens avoids filling this section with generic headlines; company, sector, or macro catalysts are shown only when the feed provides relevant evidence.',
-      likelyImpact: 'Until verified catalysts arrive, price action should be interpreted through volume, valuation, and technical levels.',
-    }],
+    newsCatalystSummary: [],
     aiRecommendation: {
       view: recommendation,
       confidence,

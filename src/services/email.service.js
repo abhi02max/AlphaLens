@@ -13,14 +13,14 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
 
   try {
     const data = await resend.emails.send({
-      from: 'AlphaLens <onboarding@resend.dev>',
+      from: 'WalletStack <onboarding@resend.dev>',
       to: [userEmail],
-      subject: 'Welcome to AlphaLens Enterprise',
+      subject: 'Welcome to WalletStack',
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Welcome, ${userName}!</h2>
-          <p>Thank you for joining AlphaLens. We are excited to help you achieve your financial goals with enterprise-grade tools.</p>
-          <p>Best,<br>The AlphaLens Team</p>
+          <p>Thank you for joining WalletStack. Your personal finance workspace is ready.</p>
+          <p>Best,<br>The WalletStack Team</p>
         </div>
       `
     });
@@ -42,15 +42,15 @@ export const sendStockAlert = async (userEmail, symbol, price, direction) => {
 
   try {
     const data = await resend.emails.send({
-      from: 'AlphaLens Alerts <alerts@resend.dev>',
+      from: 'WalletStack Alerts <alerts@resend.dev>',
       to: [userEmail],
-      subject: `AlphaLens Alert: ${symbol} is ${direction}`,
+      subject: `WalletStack Alert: ${symbol} is ${direction}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Stock Alert: ${symbol}</h2>
           <p>The stock <strong>${symbol}</strong> has crossed your alert threshold.</p>
           <p>Current price: <strong>$${price}</strong></p>
-          <p><a href="https://alphalens-app.vercel.app/stock/${symbol}">View on AlphaLens</a></p>
+          <p><a href="https://walletstack.app/stock/${symbol}">View on WalletStack</a></p>
         </div>
       `
     });

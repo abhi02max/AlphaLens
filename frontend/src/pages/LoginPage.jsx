@@ -50,7 +50,7 @@ const LoginPage = () => {
       <DashboardCard className="w-full max-w-md">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {isLogin ? 'Welcome back to AlphaLens' : 'Create your AlphaLens account'}
+            {isLogin ? 'Welcome back to WalletStack' : 'Create your WalletStack account'}
           </h2>
           <p className="text-slate-500 mt-2">
             {isLogin ? 'Enter your details to access your dashboard' : 'Start tracking stocks like a pro'}

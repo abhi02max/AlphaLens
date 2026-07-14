@@ -12,7 +12,7 @@ const MainLayout = () => {
       <nav className="bg-fintech-primary text-white p-4 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link to="/" className="text-xl font-bold tracking-wider flex items-center gap-2">
-            AlphaLens
+            WalletStack
           </Link>
           
           <div className="flex items-center gap-6">

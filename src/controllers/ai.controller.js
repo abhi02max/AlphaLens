@@ -1,4 +1,4 @@
-import { generateProfessionalStockReport, generateStockInsight, generateTradeSimulationAnalysis } from '../services/ai.service.js';
+import { generatePersonalFinanceInsights as createPersonalFinanceInsights, generateProfessionalStockReport, generateStockInsight, generateTradeSimulationAnalysis } from '../services/ai.service.js';
 import { getStockChart, getStockDetails } from '../services/stock.service.js';
 import { getMarketNews } from '../services/marketData.providers.js';
 import { asyncHandler } from '../middlewares/error.middleware.js';
@@ -61,6 +61,16 @@ export const analyzeTradeSimulation = asyncHandler(async (req, res) => {
       simulation,
       analysis,
     },
+  });
+});
+
+export const generatePersonalFinanceInsights = asyncHandler(async (req, res) => {
+  const profile = req.body || {};
+  const insight = await createPersonalFinanceInsights(profile);
+
+  res.status(200).json({
+    success: true,
+    data: insight,
   });
 });
 

@@ -357,7 +357,7 @@ export default function StockDetail() {
           <h2 className="font-semibold text-lg text-slate-900 dark:text-white pb-1">Key Statistics</h2>
           {details.providersUsed?.length > 1 && (
             <div className="text-xs leading-relaxed text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
-              AlphaLens merged live data from {details.providersUsed.join(', ')} to reduce missing metrics.
+              WalletStack merged live data from {details.providersUsed.join(', ')} to reduce missing metrics.
             </div>
           )}
           <MetricCard label="Market Cap" value={formatCompact(details.marketCap)} icon={BarChart3} />

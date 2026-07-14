@@ -21,9 +21,9 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'AlphaLens API',
+      title: 'WalletStack API',
       version: '1.0.0',
-      description: 'API documentation for AlphaLens Financial Intelligence Platform',
+      description: 'API documentation for WalletStack personal finance and market intelligence platform',
     },
     servers: [
       {
@@ -51,8 +51,12 @@ app.use(mongoSanitize());
 
 // SECURITY Middleware: CORS for frontend requests
 // In production, restrict this to your specific frontend URL
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? ['https://alphalens-app.vercel.app'] 
+const productionOrigins = (process.env.CLIENT_URL || 'https://walletstack-app.vercel.app')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? productionOrigins
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 
 app.use(cors({

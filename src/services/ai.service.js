@@ -23,8 +23,8 @@ const openai = new OpenAI({
   apiKey: apiKey,
   baseURL: 'https://openrouter.ai/api/v1', // Point to OpenRouter
   defaultHeaders: {
-    "HTTP-Referer": "https://alphalens.app", // Optional, for including your app on openrouter.ai rankings.
-    "X-Title": "AlphaLens", // Optional. Shows in rankings on openrouter.ai.
+    "HTTP-Referer": "https://walletstack.app", // Optional, for including your app on openrouter.ai rankings.
+    "X-Title": "WalletStack", // Optional. Shows in rankings on openrouter.ai.
   }
 }); 
 
@@ -95,7 +95,7 @@ const createJsonCompletion = async ({
 /**
  * Generates structured AI insights based on raw stock data.
  * @param {Object} stockData - The financial metrics fetched from Yahoo Finance.
- * @param {string} learningMode - Retained for API compatibility; AlphaLens always uses the professional desk profile.
+ * @param {string} learningMode - Retained for API compatibility; WalletStack always uses the professional desk profile.
  * @returns {Object} - Parsed JSON object containing the insights.
  */
 export const generateStockInsight = async (stockData, learningMode = 'pro') => {
@@ -107,7 +107,7 @@ export const generateStockInsight = async (stockData, learningMode = 'pro') => {
   // 1. Prompt Engineering: The System Prompt
   // Sets the AI's identity, behavior limitations, and specific rules.
   const systemPrompt = `
-    You are AlphaLens' senior equity research and market-structure analyst.
+    You are WalletStack's senior equity research and market-structure analyst.
     Produce a professional desk-grade view for an experienced market participant.
     
     RULES TO AVOID HALLUCINATIONS:
@@ -164,7 +164,7 @@ export const generateTradeSimulationAnalysis = async (stockData, simulation) => 
   }
 
   const systemPrompt = `
-    You are AlphaLens' professional trade-intelligence engine for a virtual-money stock simulator.
+    You are WalletStack's professional trade-intelligence engine for a virtual-money stock simulator.
     Evaluate the proposed position as a market desk would before execution.
 
     STRICT RULES:
@@ -223,6 +223,48 @@ export const generateTradeSimulationAnalysis = async (stockData, simulation) => 
   }
 };
 
+export const generatePersonalFinanceInsights = async (profile = {}) => {
+  if (!hasUsableAiKey) return getMockPersonalFinanceInsights(profile);
+
+  const systemPrompt = `
+    You are WalletStack's personal finance intelligence engine.
+    Produce a concise, practical decision brief from the user's structured finance snapshot.
+
+    RULES:
+    1. Do not invent transactions, income, balances, market data, or personal circumstances.
+    2. Do not give regulated financial advice or direct the user to buy, sell, borrow, or invest.
+    3. Use analytical language: current picture, likely pressure, useful next action, watch item.
+    4. Acknowledge missing data instead of guessing.
+    5. Output only strict JSON.
+
+    REQUIRED JSON SCHEMA:
+    {
+      "headline": "short analyst-style headline",
+      "summary": "2-3 sentence decision brief",
+      "priorityActions": ["action 1", "action 2", "action 3"],
+      "risks": ["risk 1", "risk 2"],
+      "opportunities": ["opportunity 1", "opportunity 2"],
+      "nextReview": "what to review next and when",
+      "disclaimer": "This is analytical and educational, not licensed financial advice."
+    }
+  `;
+
+  try {
+    const response = await createJsonCompletion({
+      temperature: 0.2,
+      timeoutMs: Number(process.env.OPENROUTER_PERSONAL_FINANCE_TIMEOUT_MS || 12000),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Finance snapshot:\n${JSON.stringify(profile, null, 2)}` },
+      ],
+    });
+    return parseJsonContent(response.choices[0].message.content);
+  } catch (error) {
+    console.error('Personal Finance AI Error:', error.message);
+    return getMockPersonalFinanceInsights(profile);
+  }
+};
+
 export const generateProfessionalStockReport = async ({ stockData, chartData = [], news = [] }) => {
   const context = buildProfessionalReportContext(stockData, chartData, news);
 
@@ -231,7 +273,7 @@ export const generateProfessionalStockReport = async ({ stockData, chartData = [
   }
 
   const systemPrompt = `
-    You are AlphaLens' institutional equity research engine.
+    You are WalletStack's institutional equity research engine.
     Produce a concise trader-grade stock report for experienced market participants.
 
     STYLE:
@@ -289,7 +331,7 @@ export const generateProfessionalStockReport = async ({ stockData, chartData = [
     }
   `;
 
-  const userPrompt = `Generate a professional AlphaLens stock report from this context:\n${JSON.stringify(context, null, 2)}`;
+  const userPrompt = `Generate a professional WalletStack stock report from this context:\n${JSON.stringify(context, null, 2)}`;
 
   try {
     const response = await createJsonCompletion({
@@ -557,6 +599,38 @@ function getMockProfessionalReport(context) {
       'Company-specific news that changes revenue, margin, or capital-allocation expectations.',
     ],
     disclaimer: 'This report is analytical and educational for simulation use only; it is not licensed financial advice or a directive to trade.',
+  };
+}
+
+function getMockPersonalFinanceInsights(profile = {}) {
+  const cashFlow = Number(profile.cashFlow || 0);
+  const budgetUsage = Number(profile.budgetUsage || 0);
+  const savingsRate = profile.savingsRate == null ? null : Number(profile.savingsRate);
+  const goalProgress = Number(profile.goalProgress || 0);
+  const priorityActions = [];
+
+  if (budgetUsage > 90) priorityActions.push('Review the largest discretionary category before the next spending cycle.');
+  else priorityActions.push('Keep logging transactions consistently so the spending baseline becomes decision-grade.');
+  if (goalProgress < 25) priorityActions.push('Set a recurring contribution toward the highest-priority goal.');
+  else priorityActions.push('Keep goal contributions automated and review progress at month end.');
+  priorityActions.push('Review simulated portfolio concentration before increasing risk exposure.');
+
+  return {
+    headline: cashFlow >= 0 ? 'Cash flow is creating forward capacity.' : 'Cash flow needs a tighter operating margin.',
+    summary: savingsRate == null
+      ? 'The model has limited income context, so the immediate priority is consistent transaction capture and a clear monthly budget.'
+      : `Logged cash flow is ${cashFlow >= 0 ? 'positive' : 'negative'} with a ${savingsRate.toFixed(0)}% savings rate and ${budgetUsage.toFixed(0)}% of the monthly budget used. The strongest next step is to protect the margin that funds goals and absorbs unexpected costs.`,
+    priorityActions,
+    risks: [
+      budgetUsage > 90 ? 'Budget utilization is approaching the monthly ceiling.' : 'Incomplete transaction history can understate spending pressure.',
+      'Virtual portfolio performance should not be treated as a guaranteed real-world outcome.',
+    ],
+    opportunities: [
+      goalProgress < 25 ? 'A small recurring contribution can establish a repeatable funding cadence.' : 'Goal funding is moving; maintain the cadence before adding new targets.',
+      cashFlow >= 0 ? 'Positive cash flow can be directed toward the highest-value financial priority.' : 'Category-level review may reveal recurring costs that can widen the margin.',
+    ],
+    nextReview: 'Review the budget, goal funding, and position concentration together at the next month close.',
+    disclaimer: 'This is analytical and educational, not licensed financial advice.',
   };
 }
 

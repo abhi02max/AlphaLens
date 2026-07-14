@@ -33,7 +33,7 @@ export default function Register() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
               <span className="text-white font-bold text-lg">A</span>
             </div>
-            <span className="text-2xl font-bold gradient-text">AlphaLens</span>
+            <span className="text-2xl font-bold gradient-text">WalletStack</span>
           </Link>
           <h1 className="text-2xl font-bold">Create account</h1>
           <p className="text-dark-500 dark:text-dark-400 mt-1">Start your learning journey</p>

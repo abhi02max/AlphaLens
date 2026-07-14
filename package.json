@@ -1,7 +1,7 @@
 {
-  "name": "alphalens-backend",
+  "name": "walletstack-backend",
   "version": "1.0.0",
-  "description": "Backend for AlphaLens AI-powered financial platform",
+  "description": "Backend for WalletStack personal finance and market intelligence platform",
   "type": "module",
   "main": "src/server.js",
   "scripts": {

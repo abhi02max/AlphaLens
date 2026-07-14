@@ -154,7 +154,7 @@ export default function StockChart({ data, loading, chartType = 'line' }) {
     <div>
       {isEstimated && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-900/60 dark:bg-amber-900/20 dark:text-amber-200">
-          Historical candles were unavailable for this instrument, so AlphaLens is showing a derived intraday chart from the latest live quote.
+          Historical candles were unavailable for this instrument, so WalletStack is showing a derived intraday chart from the latest live quote.
         </div>
       )}
       <div

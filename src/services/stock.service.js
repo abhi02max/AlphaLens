@@ -1,6 +1,6 @@
 import redisClient from '../config/redis.js';
 import { NotFoundError, InternalServerError } from '../utils/appError.js';
-import { collectProviderResults, runProviderChain } from './marketData.providers.js';
+import { collectProviderResults, marketDataProviders, runProviderChain } from './marketData.providers.js';
 
 const fallbackStocks = [
   {
@@ -197,6 +197,25 @@ const prioritizeSearchResults = (stocks, query) => (
     .sort((a, b) => {
       const rankDelta = rankSearchResult(a.stock, query) - rankSearchResult(b.stock, query);
       if (rankDelta !== 0) return rankDelta;
+
+      // When a company-name search produces several venue listings, prefer the
+      // canonical Yahoo equity record over a foreign listing or derivative.
+      const instrumentRank = stock => {
+        const type = normalizeSearchText(stock.type);
+        const derivativePenalty = type.includes('ETF') || type.includes('ETP') || type.includes('WARRANT') ? 1 : 0;
+        const venuePenalty = normalizeSearchText(stock.symbol).includes('.') ? 1 : 0;
+        return derivativePenalty + venuePenalty;
+      };
+      const exchangeRank = stock => /NASDAQ|NYSE|NYSEARCA|NSE|BSE/.test(normalizeSearchText(stock.exchange)) ? 0 : 1;
+      const exchangeDelta = exchangeRank(a.stock) - exchangeRank(b.stock);
+      if (exchangeDelta !== 0) return exchangeDelta;
+
+      const instrumentDelta = instrumentRank(a.stock) - instrumentRank(b.stock);
+      if (instrumentDelta !== 0) return instrumentDelta;
+
+      const providerRank = stock => stock.provider === 'Yahoo Finance' ? 0 : 1;
+      const providerDelta = providerRank(a.stock) - providerRank(b.stock);
+      if (providerDelta !== 0) return providerDelta;
       return a.index - b.index;
     })
     .map(({ stock }) => stock)
@@ -262,7 +281,7 @@ const buildEstimatedChartFromQuote = (quote, range) => (
   ).map(point => ({
     ...point,
     symbol: quote.symbol,
-    provider: 'AlphaLens Estimated Chart',
+    provider: 'WalletStack Estimated Chart',
     freshness: 'estimated-from-live-quote',
   }))
 );
@@ -381,6 +400,27 @@ const getLikelySymbolCandidates = async (symbol) => {
       ];
 
   try {
+    // Yahoo has the widest symbol directory in the current provider set. Query it
+    // first so company names such as "NVIDIA" resolve to the tradable ticker NVDA.
+    const yahooResults = await marketDataProviders.yahoo.search(symbol);
+    const yahooCandidates = prioritizeSearchResults(
+      dedupeSearchResults(yahooResults),
+      symbol,
+    )
+      .filter(stock => normalizeSearchText(stock.type) === 'EQUITY')
+      .map(stock => stock.symbol)
+      .filter(candidate => normalizeSearchText(candidate) !== normalizedSymbol);
+
+    if (yahooCandidates.length > 0) {
+      return [...new Set([...yahooCandidates, ...directCandidates])].slice(0, 8);
+    }
+  } catch (error) {
+    if (process.env.DEBUG_MARKET_DATA === 'true') {
+      console.warn(`Yahoo symbol resolution failed for "${symbol}":`, error.message);
+    }
+  }
+
+  try {
     const { results } = await collectProviderResults(
       'search',
       [symbol],
@@ -392,7 +432,9 @@ const getLikelySymbolCandidates = async (symbol) => {
 
     return [...new Set([...searchedCandidates, ...directCandidates])].slice(0, 8);
   } catch (error) {
-    console.warn(`Symbol candidate search failed for "${symbol}":`, error.message);
+    if (process.env.DEBUG_MARKET_DATA === 'true') {
+      console.warn(`Symbol candidate search failed for "${symbol}":`, error.message);
+    }
     return directCandidates;
   }
 };
@@ -469,7 +511,7 @@ const fetchWithCache = async (cacheKey, fetchFunction, ttlSeconds = 3600) => {
     if (redisClient.isReady) {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
-        console.log(`⚡ CACHE HIT for: ${cacheKey}`);
+        if (process.env.DEBUG_MARKET_DATA === 'true') console.log(`CACHE HIT for: ${cacheKey}`);
         return JSON.parse(cachedData);
       }
     }
@@ -478,7 +520,7 @@ const fetchWithCache = async (cacheKey, fetchFunction, ttlSeconds = 3600) => {
   }
 
   // 2. CACHE MISS: Fetch fresh data from the API
-  console.log(`🐌 CACHE MISS for: ${cacheKey}. Fetching from API...`);
+  if (process.env.DEBUG_MARKET_DATA === 'true') console.log(`CACHE MISS for: ${cacheKey}. Fetching from API...`);
   try {
     const freshData = await fetchFunction();
 
@@ -568,7 +610,7 @@ export const getStockDetails = async (symbol) => {
         console.warn(`Using fallback quote for "${symbol}":`, error.message);
         return {
           ...fallbackQuote,
-          provider: 'AlphaLens Offline Demo',
+          provider: 'WalletStack Offline Demo',
           freshness: 'fallback',
           lastUpdated: new Date().toISOString(),
         };
@@ -604,7 +646,7 @@ export const getStockChart = async (symbol, range = '1mo') => {
         console.warn(`Using fallback chart for "${symbol}":`, error.message);
         return buildFallbackChart(fallbackQuote, range).map(point => ({
           ...point,
-          provider: 'AlphaLens Offline Demo',
+          provider: 'WalletStack Offline Demo',
         }));
       }
       throw error;

@@ -162,7 +162,7 @@ const HomePage = () => {
         {/* Features Section */}
         <div className="bg-white rounded-2xl p-8 sm:p-12 border border-slate-200 shadow-sm mb-16">
           <h2 className="text-3xl font-bold text-slate-900 mb-8">
-            Why Choose AlphaLens?
+            Why Choose WalletStack?
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -207,7 +207,7 @@ const HomePage = () => {
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-8 sm:p-12 text-white text-center">
           <h2 className="text-3xl font-bold mb-4">Start Your Market Analysis</h2>
           <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-            Get started with AlphaLens today and take control of your investment decisions.
+            Get started with WalletStack today and take control of your financial decisions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/search">

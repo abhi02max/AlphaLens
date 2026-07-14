@@ -5,9 +5,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'AlphaLens API',
+      title: 'WalletStack API',
       version: '1.0.0',
-      description: 'API documentation for AlphaLens Financial Intelligence Platform',
+      description: 'API documentation for WalletStack personal finance and market intelligence platform',
     },
     servers: [
       {
@@ -15,7 +15,7 @@ const options = {
         description: 'Development server',
       },
       {
-        url: 'https://alphalens-api.onrender.com/api',
+        url: 'https://walletstack-api.onrender.com/api',
         description: 'Production server',
       },
     ],

@@ -31,7 +31,7 @@ const AiInsightCard = ({ symbol }) => {
       <div className="flex items-center justify-between mb-6 relative z-10">
         <div className="flex items-center gap-2">
           <Sparkles className="text-emerald-400" size={20} />
-          <h3 className="text-lg font-bold text-white tracking-wide">AlphaLens Analysis</h3>
+          <h3 className="text-lg font-bold text-white tracking-wide">WalletStack Analysis</h3>
         </div>
         <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 px-3 py-1 rounded-full text-xs font-mono text-slate-300">
           <Target size={12} className="text-green-400" />

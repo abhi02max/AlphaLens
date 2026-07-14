@@ -108,7 +108,7 @@ export default function Home() {
                   Track, study, and shortlist smarter trades.
                 </h1>
                 <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-3 max-w-2xl">
-                  AlphaLens combines charting, watchlists, market discovery, and AI explanations in one calm investing dashboard.
+                  WalletStack combines market intelligence, portfolio tracking, cash-flow planning, goals, and AI explanations in one calm finance workspace.
                 </p>
               </div>
 

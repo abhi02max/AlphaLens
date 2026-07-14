@@ -25,6 +25,7 @@ export const aiApi = {
   getInsight: (symbol) => api.get(`/ai/insight/${symbol}`, { params: { mode: 'pro' } }),
   getProfessionalReport: (symbol) => api.get(`/ai/report/${encodeURIComponent(symbol)}`),
   analyzeSimulation: (payload) => api.post('/ai/simulate', payload, { timeout: 15000 }),
+  getPersonalFinanceInsights: (payload) => api.post('/ai/personal-finance', payload, { timeout: 20000 }),
 }
 
 export const userApi = {

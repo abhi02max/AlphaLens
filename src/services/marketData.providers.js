@@ -5,6 +5,27 @@ const yahooFinance = new YahooFinance({
   validation: { logErrors: false },
 });
 
+// A rejected provider key should not slow every quote request until the server
+// restarts. Symbol-level 404s are intentionally not cooled down because another
+// symbol may still be valid for that provider.
+const providerCooldowns = new Map();
+
+const providerCooldownMs = error => {
+  if ([401, 403].includes(error?.status)) return 15 * 60 * 1000;
+  if (error?.status === 429) return 60 * 1000;
+  if ([500, 502, 503, 504].includes(error?.status)) return 30 * 1000;
+  return 0;
+};
+
+const providerIsAvailable = provider => (providerCooldowns.get(provider.name) || 0) <= Date.now();
+
+const noteProviderFailure = (provider, error) => {
+  const cooldown = providerCooldownMs(error);
+  if (cooldown > 0) providerCooldowns.set(provider.name, Date.now() + cooldown);
+};
+
+const clearProviderFailure = provider => providerCooldowns.delete(provider.name);
+
 const toNumber = (value) => {
   const rawValue = value && typeof value === 'object' && 'raw' in value ? value.raw : value;
   const number = Number(rawValue);
@@ -20,10 +41,20 @@ const redactSecrets = (message) => String(message || '')
 
 const requestJson = async (url, providerName) => {
   const response = await fetch(url);
-  const data = await response.json();
+  const body = await response.text();
+  let data = {};
+
+  try {
+    data = body ? JSON.parse(body) : {};
+  } catch {
+    data = { message: body.slice(0, 160) };
+  }
 
   if (!response.ok) {
-    throw new Error(`${providerName} request failed: ${response.status}`);
+    const error = new Error(`${providerName} request failed: ${response.status}`);
+    error.status = response.status;
+    error.provider = providerName;
+    throw error;
   }
 
   if (data?.status === 'error' || data?.['Error Message'] || data?.Note || data?.Information) {
@@ -455,15 +486,22 @@ export const runProviderChain = async (method, args, validate = value => Boolean
   const errors = [];
 
   for (const provider of providerOrder) {
-    if (!provider.enabled() || typeof provider[method] !== 'function') continue;
+    if (!provider.enabled() || typeof provider[method] !== 'function' || !providerIsAvailable(provider)) continue;
 
     try {
       const result = await provider[method](...args);
-      if (validate(result)) return result;
+      if (validate(result)) {
+        clearProviderFailure(provider);
+        return result;
+      }
     } catch (error) {
       errors.push(`${provider.name}: ${error.message}`);
-      console.warn(`${provider.name} ${method} failed:`, error.message);
+      noteProviderFailure(provider, error);
     }
+  }
+
+  if (process.env.DEBUG_MARKET_DATA === 'true' && errors.length > 0) {
+    console.warn(`Market ${method} providers exhausted:`, errors.join(' | '));
   }
 
   const error = new Error(`No market data provider returned usable ${method} data. ${errors.join(' | ')}`);
@@ -476,17 +514,22 @@ export const collectProviderResults = async (method, args, validate = value => B
   const errors = [];
 
   for (const provider of providerOrder) {
-    if (!provider.enabled() || typeof provider[method] !== 'function') continue;
+    if (!provider.enabled() || typeof provider[method] !== 'function' || !providerIsAvailable(provider)) continue;
 
     try {
       const result = await provider[method](...args);
       if (validate(result)) {
         results.push(result);
+        clearProviderFailure(provider);
       }
     } catch (error) {
       errors.push(`${provider.name}: ${error.message}`);
-      console.warn(`${provider.name} ${method} failed:`, error.message);
+      noteProviderFailure(provider, error);
     }
+  }
+
+  if (process.env.DEBUG_MARKET_DATA === 'true' && errors.length > 0) {
+    console.warn(`Market ${method} provider issues:`, errors.join(' | '));
   }
 
   return { results, errors };

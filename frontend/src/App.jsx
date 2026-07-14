@@ -12,6 +12,10 @@ const Watchlist = lazy(() => import('./pages/Watchlist'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Simulator = lazy(() => import('./pages/Simulator'))
 const Compare = lazy(() => import('./pages/Compare'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
+const Budget = lazy(() => import('./pages/Budget'))
+const Goals = lazy(() => import('./pages/Goals'))
+const Insights = lazy(() => import('./pages/Insights'))
 
 function PageLoader() {
   return (
@@ -110,6 +114,10 @@ export default function App() {
             <Route path="/stock/:symbol" element={<StockDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/simulator" element={<Simulator />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/goals" element={<Goals />} />
+            <Route path="/insights" element={<Insights />} />
 
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/settings" element={<Settings />} />
